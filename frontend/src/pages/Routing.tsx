@@ -21,6 +21,7 @@ interface RouteEntry {
   protocol: string;
   distance: number;
   next_hops: string[];
+  interface: string;
   uptime: string;
 }
 
@@ -66,10 +67,13 @@ export default function Routing() {
     { field: "prefix", headerName: "Prefix", cellClass: "font-mono text-sm", sort: "asc" },
     { field: "protocol", headerName: "Protocol", maxWidth: 110, cellClass: "text-muted-foreground" },
     {
-      field: "next_hops",
-      headerName: "Next Hops",
+      headerName: "Via",
       cellClass: "font-mono text-xs",
-      valueFormatter: ({ value }) => (value as string[])?.join(", ") || "—",
+      valueGetter: ({ data: row }) => {
+        if (!row) return "—";
+        const hops = row.next_hops?.join(", ");
+        return hops || row.interface || "—";
+      },
       sortable: false,
     },
     { field: "distance", headerName: "Distance", maxWidth: 100 },
