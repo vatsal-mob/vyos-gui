@@ -30,7 +30,9 @@
       "Bash(python3 - <<'EOF'\nimport paramiko\n\nclient = paramiko.SSHClient\\(\\)\nclient.set_missing_host_key_policy\\(paramiko.AutoAddPolicy\\(\\)\\)\nclient.connect\\('10.10.10.1', username='vyos', password='vyos', timeout=10\\)\n\ncommands = [\n    'show version',\n    'show configuration commands',\n]\n\nfor cmd in commands:\n    stdin, stdout, stderr = client.exec_command\\(cmd\\)\n    out = stdout.read\\(\\).decode\\(\\)\n    err = stderr.read\\(\\).decode\\(\\)\n    print\\(f\"\\\\n=== {cmd} ===\"\\)\n    print\\(out or err\\)\n\nclient.close\\(\\)\nEOF)",
       "Bash(python3 - <<'EOF'\nimport paramiko\nimport time\n\nclient = paramiko.SSHClient\\(\\)\nclient.set_missing_host_key_policy\\(paramiko.AutoAddPolicy\\(\\)\\)\nclient.connect\\('10.10.10.1', username='vyos', password='vyos', timeout=10\\)\n\nshell = client.invoke_shell\\(width=220, height=50\\)\ntime.sleep\\(1\\)\nshell.recv\\(65535\\)  # clear banner\n\ndef run\\(cmd, wait=2\\):\n    shell.send\\(cmd + '\\\\n'\\)\n    time.sleep\\(wait\\)\n    out = b''\n    while shell.recv_ready\\(\\):\n        out += shell.recv\\(65535\\)\n        time.sleep\\(0.2\\)\n    return out.decode\\(errors='ignore'\\)\n\nprint\\(run\\('show version', wait=2\\)\\)\nclient.close\\(\\)\nEOF)",
       "Bash(node_modules/.bin/tsc --noEmit 2>&1)",
-      "Bash(cd /Users/vatsal_mob/tools/vyos/frontend && node_modules/.bin/tsc --noEmit 2>&1)"
+      "Bash(cd /Users/vatsal_mob/tools/vyos/frontend && node_modules/.bin/tsc --noEmit 2>&1)",
+      "Bash(gh repo:*)",
+      "Bash(which git:*)"
     ]
   }
 }
