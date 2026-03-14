@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNATRules, useAddNATRule, useDeleteNATRule } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -47,7 +47,7 @@ function NATTable({ type }: { type: "source" | "destination" }) {
     setShowForm(false);
   }
 
-  function DeleteRuleCell({ data }: ICellRendererParams<NATRule>) {
+  const DeleteRuleCell = useCallback(({ data }: ICellRendererParams<NATRule>) => {
     if (!data) return null;
     return (
       <ConfirmDialog
@@ -59,9 +59,9 @@ function NATTable({ type }: { type: "source" | "destination" }) {
         onConfirm={() => deleteRule.mutate({ type, ruleNumber: data.rule_number })}
       />
     );
-  }
+  }, [type, deleteRule.mutate]);
 
-  const columnDefs: ColDef<NATRule>[] = [
+  const columnDefs = useMemo<ColDef<NATRule>[]>(() => [
     { field: "rule_number", headerName: "#", maxWidth: 70 },
     { field: "source_address", headerName: "Source", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
     { field: "destination_address", headerName: "Destination", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
@@ -75,7 +75,7 @@ function NATTable({ type }: { type: "source" | "destination" }) {
     },
     { field: "description", headerName: "Description", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
     { headerName: "", maxWidth: 50, cellRenderer: DeleteRuleCell, sortable: false },
-  ];
+  ], [DeleteRuleCell]);
 
   return (
     <Card>

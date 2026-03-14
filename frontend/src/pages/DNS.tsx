@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   useDNSForwarding,
   useSetNameservers,
@@ -75,13 +75,7 @@ export default function DNS() {
     setDomainForm({ domain: "", server: "" });
   }
 
-  if (isLoading) return <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
-
-  const displayNS = nsText ?? data.nameservers.join("\n");
-
-  const domainRows: DomainOverrideRow[] = Object.entries(data.domain_overrides).map(([domain, server]) => ({ domain, server }));
-
-  function DeleteDomainCell({ data: row }: ICellRendererParams<DomainOverrideRow>) {
+  const DeleteDomainCell = useCallback(({ data: row }: ICellRendererParams<DomainOverrideRow>) => {
     if (!row) return null;
     return (
       <ConfirmDialog
@@ -93,9 +87,9 @@ export default function DNS() {
         onConfirm={() => deleteDomain.mutate(row.domain)}
       />
     );
-  }
+  }, [deleteDomain.mutate]);
 
-  function DeleteRecordCell({ data: row }: ICellRendererParams<DNSRecord>) {
+  const DeleteRecordCell = useCallback(({ data: row }: ICellRendererParams<DNSRecord>) => {
     if (!row) return null;
     return (
       <ConfirmDialog
@@ -107,27 +101,31 @@ export default function DNS() {
         onConfirm={() => deleteRecord.mutate({ domain: row.domain, type: row.type, name: row.name })}
       />
     );
-  }
+  }, [deleteRecord.mutate]);
 
-  function TypeBadgeCell({ value }: ICellRendererParams) {
-    return (
-      <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">{value as string}</span>
-    );
-  }
+  const TypeBadgeCell = useCallback(({ value }: ICellRendererParams) => (
+    <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">{value as string}</span>
+  ), []);
 
-  const domainColumnDefs: ColDef<DomainOverrideRow>[] = [
+  const domainColumnDefs = useMemo<ColDef<DomainOverrideRow>[]>(() => [
     { field: "domain", headerName: "Domain", cellClass: "font-mono" },
     { field: "server", headerName: "Server", cellClass: "font-mono" },
     { headerName: "", maxWidth: 50, cellRenderer: DeleteDomainCell, sortable: false },
-  ];
+  ], [DeleteDomainCell]);
 
-  const recordColumnDefs: ColDef<DNSRecord>[] = [
+  const recordColumnDefs = useMemo<ColDef<DNSRecord>[]>(() => [
     { field: "domain", headerName: "Domain", cellClass: "font-mono text-xs" },
     { field: "type", headerName: "Type", maxWidth: 80, cellRenderer: TypeBadgeCell },
     { field: "name", headerName: "Name", cellClass: "font-mono text-xs" },
     { field: "value", headerName: "Value", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "—" },
     { headerName: "", maxWidth: 50, cellRenderer: DeleteRecordCell, sortable: false },
-  ];
+  ], [TypeBadgeCell, DeleteRecordCell]);
+
+  if (isLoading) return <div className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>;
+
+  const displayNS = nsText ?? data.nameservers.join("\n");
+
+  const domainRows: DomainOverrideRow[] = Object.entries(data.domain_overrides).map(([domain, server]) => ({ domain, server }));
 
   return (
     <div className="space-y-6">

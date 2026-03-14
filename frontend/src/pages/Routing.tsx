@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useStaticRoutes, useRoutingTable, useAddStaticRoute, useDeleteStaticRoute } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -41,7 +41,7 @@ export default function Routing() {
     setShowForm(false);
   }
 
-  function DeleteRouteCell({ data }: ICellRendererParams<StaticRoute>) {
+  const DeleteRouteCell = useCallback(({ data }: ICellRendererParams<StaticRoute>) => {
     if (!data) return null;
     return (
       <ConfirmDialog
@@ -53,17 +53,17 @@ export default function Routing() {
         onConfirm={() => deleteRoute.mutate(data.prefix)}
       />
     );
-  }
+  }, [deleteRoute.mutate]);
 
-  const staticColumnDefs: ColDef<StaticRoute>[] = [
+  const staticColumnDefs = useMemo<ColDef<StaticRoute>[]>(() => [
     { field: "prefix", headerName: "Prefix", cellClass: "font-mono text-sm", sort: "asc" },
     { field: "next_hop", headerName: "Next Hop", cellClass: "font-mono" },
     { field: "distance", headerName: "Distance", maxWidth: 100 },
     { field: "description", headerName: "Description", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
     { headerName: "", maxWidth: 50, cellRenderer: DeleteRouteCell, sortable: false },
-  ];
+  ], [DeleteRouteCell]);
 
-  const ribColumnDefs: ColDef<RouteEntry>[] = [
+  const ribColumnDefs = useMemo<ColDef<RouteEntry>[]>(() => [
     { field: "prefix", headerName: "Prefix", cellClass: "font-mono text-sm", sort: "asc" },
     { field: "protocol", headerName: "Protocol", maxWidth: 110, cellClass: "text-muted-foreground" },
     {
@@ -78,7 +78,7 @@ export default function Routing() {
     },
     { field: "distance", headerName: "Distance", maxWidth: 100 },
     { field: "uptime", headerName: "Uptime", maxWidth: 110, cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
-  ];
+  ], []);
 
   return (
     <div className="space-y-6">

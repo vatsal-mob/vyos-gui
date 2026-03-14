@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useFirewallChains,
   useFirewallRules,
@@ -81,11 +81,12 @@ function ChainRules({ chain }: { chain: string }) {
     setShowForm(false);
   }
 
-  const DeleteCell = makeDeleteCell(chain, (ruleNumber) =>
-    deleteRule.mutate({ chain, ruleNumber })
+  const DeleteCell = useMemo(
+    () => makeDeleteCell(chain, (ruleNumber) => deleteRule.mutate({ chain, ruleNumber })),
+    [chain, deleteRule.mutate]
   );
 
-  const columnDefs: ColDef<FirewallRule>[] = [
+  const columnDefs = useMemo<ColDef<FirewallRule>[]>(() => [
     { field: "rule_number", headerName: "#", maxWidth: 70 },
     { field: "action", headerName: "Action", maxWidth: 100, cellRenderer: ActionCell },
     { field: "protocol", headerName: "Protocol", maxWidth: 100, valueFormatter: ({ value }) => (value as string) || "any", cellClass: "text-muted-foreground" },
@@ -93,7 +94,7 @@ function ChainRules({ chain }: { chain: string }) {
     { field: "destination", headerName: "Destination", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
     { field: "description", headerName: "Description", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
     { headerName: "", maxWidth: 50, cellRenderer: DeleteCell, sortable: false },
-  ];
+  ], [DeleteCell]);
 
   return (
     <div className="space-y-2">
@@ -167,7 +168,7 @@ export default function Firewall() {
   const allChains: string[] = chains ?? [];
   const activeChain = selectedChain ?? allChains[0] ?? null;
 
-  const groupColumnDefs: ColDef<FirewallGroup>[] = [
+  const groupColumnDefs = useMemo<ColDef<FirewallGroup>[]>(() => [
     { field: "name", headerName: "Name", cellClass: "font-medium" },
     { field: "type", headerName: "Type", maxWidth: 120, cellClass: "text-muted-foreground" },
     {
@@ -177,7 +178,7 @@ export default function Firewall() {
       valueFormatter: ({ value }) => (value as string[])?.join(", ") || "—",
       sortable: false,
     },
-  ];
+  ], []);
 
   return (
     <div className="space-y-6">

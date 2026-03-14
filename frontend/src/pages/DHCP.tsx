@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useDHCPPools, useDHCPLeases, useCreateDHCPPool, useDeleteDHCPPool, useCreateStaticMapping, useStaticMappings, useDeleteStaticMapping } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -69,7 +69,7 @@ export default function DHCP() {
     setShowForm(false);
   }
 
-  function DeletePoolCell({ data }: ICellRendererParams<DHCPPool>) {
+  const DeletePoolCell = useCallback(({ data }: ICellRendererParams<DHCPPool>) => {
     if (!data) return null;
     return (
       <ConfirmDialog
@@ -81,9 +81,9 @@ export default function DHCP() {
         onConfirm={() => deletePool.mutate(data.name)}
       />
     );
-  }
+  }, [deletePool.mutate]);
 
-  function DeleteMappingCell({ data }: ICellRendererParams<StaticMapping>) {
+  const DeleteMappingCell = useCallback(({ data }: ICellRendererParams<StaticMapping>) => {
     if (!data) return null;
     return (
       <ConfirmDialog
@@ -95,9 +95,9 @@ export default function DHCP() {
         onConfirm={() => deleteStaticMapping.mutate({ pool: data.pool, name: data.name })}
       />
     );
-  }
+  }, [deleteStaticMapping.mutate]);
 
-  function PinLeaseCell({ data }: ICellRendererParams<DHCPLease>) {
+  const PinLeaseCell = useCallback(({ data }: ICellRendererParams<DHCPLease>) => {
     if (!data) return null;
     return (
       <button
@@ -115,9 +115,9 @@ export default function DHCP() {
         <Pin className="h-4 w-4" />
       </button>
     );
-  }
+  }, [setMappingForm]);
 
-  const poolColumnDefs: ColDef<DHCPPool>[] = [
+  const poolColumnDefs = useMemo<ColDef<DHCPPool>[]>(() => [
     { field: "name", headerName: "Name", cellClass: "font-medium" },
     { field: "subnet", headerName: "Subnet", cellClass: "font-mono text-xs" },
     {
@@ -135,24 +135,24 @@ export default function DHCP() {
       sortable: false,
     },
     { headerName: "", maxWidth: 50, cellRenderer: DeletePoolCell, sortable: false },
-  ];
+  ], [DeletePoolCell]);
 
-  const mappingColumnDefs: ColDef<StaticMapping>[] = [
+  const mappingColumnDefs = useMemo<ColDef<StaticMapping>[]>(() => [
     { field: "name", headerName: "Name", cellClass: "font-medium" },
     { field: "pool", headerName: "Pool", cellClass: "text-muted-foreground" },
     { field: "ip", headerName: "IP", cellClass: "font-mono" },
     { field: "mac", headerName: "MAC", cellClass: "font-mono text-xs" },
     { headerName: "", maxWidth: 50, cellRenderer: DeleteMappingCell, sortable: false },
-  ];
+  ], [DeleteMappingCell]);
 
-  const leaseColumnDefs: ColDef<DHCPLease>[] = [
+  const leaseColumnDefs = useMemo<ColDef<DHCPLease>[]>(() => [
     { field: "ip", headerName: "IP", cellClass: "font-mono" },
     { field: "mac", headerName: "MAC", cellClass: "font-mono text-xs" },
     { field: "hostname", headerName: "Hostname", valueFormatter: ({ value }) => (value as string) || "—" },
     { field: "expiry", headerName: "Expiry", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
     { field: "state", headerName: "State", maxWidth: 100, cellClass: "text-muted-foreground" },
     { headerName: "", maxWidth: 50, cellRenderer: PinLeaseCell, sortable: false },
-  ];
+  ], [PinLeaseCell]);
 
   return (
     <div className="space-y-6">
