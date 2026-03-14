@@ -1,6 +1,9 @@
 import { AgGridReact } from "ag-grid-react";
+import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import type { ColDef, GridOptions } from "ag-grid-community";
 import { useThemeStore } from "../../store/theme";
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface DataGridProps<T> extends Omit<GridOptions<T>, "columnDefs" | "rowData"> {
   columnDefs: ColDef<T>[];
@@ -35,7 +38,7 @@ export default function DataGrid<T>({
     <div
       className={themeClass}
       style={{
-        height: height ?? (compact ? "auto" : undefined),
+        height: height ?? undefined,
         width: "100%",
         "--ag-font-size": compact ? "12px" : "13px",
         "--ag-row-height": compact ? "32px" : "40px",
@@ -50,7 +53,6 @@ export default function DataGrid<T>({
         pagination={pagination}
         paginationPageSize={pageSize}
         suppressMovableColumns
-        animateRows
         {...rest}
       />
     </div>
