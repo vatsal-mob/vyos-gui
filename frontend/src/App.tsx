@@ -1,8 +1,35 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, Component } from "react";
+import type { ReactNode } from "react";
 import Login from "./pages/Login";
 import { useAuthStore } from "./store/auth";
 import Layout from "./components/layout/Layout";
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex min-h-screen items-center justify-center p-8">
+          <div className="max-w-lg space-y-3">
+            <h2 className="text-lg font-semibold text-destructive">Something went wrong</h2>
+            <pre className="rounded bg-muted p-3 text-xs overflow-auto">
+              {(this.state.error as Error).message}
+            </pre>
+            <button
+              className="rounded bg-primary px-4 py-2 text-sm text-primary-foreground"
+              onClick={() => { this.setState({ error: null }); window.location.reload(); }}
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Interfaces = lazy(() => import("./pages/Interfaces"));
@@ -32,7 +59,11 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function wrap(element: React.ReactNode) {
-  return <Suspense fallback={<Loading />}>{element}</Suspense>;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<Loading />}>{element}</Suspense>
+    </ErrorBoundary>
+  );
 }
 
 export default function App() {
