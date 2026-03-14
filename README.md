@@ -1,5 +1,9 @@
 # VyOS GUI
 
+[![Build & Publish](https://github.com/vatsal-mob/vyos-gui/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/vatsal-mob/vyos-gui/actions/workflows/docker-publish.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/ghcr.io-vatsal--mob%2Fvyos--gui-blue?logo=docker)](https://github.com/vatsal-mob/vyos-gui/pkgs/container/vyos-gui-backend)
+
 A self-hosted web interface for [VyOS](https://vyos.io/) Community Edition. Manage your homelab router without memorising CLI syntax.
 
 ![VyOS GUI Login](docs/screenshot.png)
@@ -45,7 +49,7 @@ Without an API key the GUI falls back to SSH for all operations.
 ### 2. Deploy
 
 ```bash
-git clone https://github.com/youruser/vyos-gui.git
+git clone https://github.com/vatsal-mob/vyos-gui.git
 cd vyos-gui
 cp .env.example .env
 ```
@@ -139,6 +143,12 @@ pytest tests/
 - VyOS credentials are stored only in the encrypted session cookie; they are never written to disk or logged.
 - All config paths are validated server-side with strict regex to prevent injection.
 - Destructive operations (reboot, poweroff, firewall rule delete) require a 60-second confirmation token.
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style guidelines, and the pull request process.
+
+To report a security vulnerability, follow the instructions in [SECURITY.md](.github/SECURITY.md) — please do not open a public issue.
 
 ## License
 
