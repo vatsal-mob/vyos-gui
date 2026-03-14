@@ -1,0 +1,49 @@
+version: "3.9"
+
+# Portainer-friendly compose that builds directly from Git subdirectories.
+# Supply all required env vars in Portainer's UI or a stack-level env file.
+services:
+  backend:
+    build:
+      context: https://github.com/vatsal-mob/vyos-gui.git#main:backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      GUI_USERNAME: ${GUI_USERNAME}
+      GUI_PASSWORD_HASH: ${GUI_PASSWORD_HASH}
+      VYOS_HOST: ${VYOS_HOST}
+      VYOS_PORT: ${VYOS_PORT}
+      VYOS_SSH_USER: ${VYOS_SSH_USER}
+      VYOS_SSH_PASSWORD: ${VYOS_SSH_PASSWORD}
+      VYOS_API_KEY: ${VYOS_API_KEY}
+      VYOS_API_URL: ${VYOS_API_URL}
+      VYOS_TLS_VERIFY: ${VYOS_TLS_VERIFY}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: https://github.com/vatsal-mob/vyos-gui.git#main:frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      # Not required, but keeps Portainer UI consistent
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8000}
+    # optional healthcheck
+    # healthcheck:
+    #   test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+    #   interval: 30s
+    #   timeout: 5s
+    #   retries: 3
