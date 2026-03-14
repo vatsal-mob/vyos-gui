@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme — steel grey */
+    --background: 216 20% 97%;
+    --foreground: 222 28% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 28% 10%;
+    --primary: 193 90% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 216 16% 90%;
+    --secondary-foreground: 222 28% 16%;
+    --muted: 216 16% 92%;
+    --muted-foreground: 216 12% 46%;
+    --accent: 216 16% 92%;
+    --accent-foreground: 222 28% 16%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 216 16% 86%;
+    --input: 216 16% 86%;
+    --ring: 193 90% 38%;
+    --radius: 0.1875rem;
+  }
+
+  .dark {
+    /* Obsidian NOC — ultra-dark blue-black + cyan */
+    --background: 222 28% 5%;
+    --foreground: 210 18% 87%;
+    --card: 222 22% 8%;
+    --card-foreground: 210 18% 87%;
+    --primary: 193 90% 52%;
+    --primary-foreground: 222 28% 5%;
+    --secondary: 222 18% 12%;
+    --secondary-foreground: 210 18% 75%;
+    --muted: 222 18% 12%;
+    --muted-foreground: 215 14% 48%;
+    --accent: 222 18% 13%;
+    --accent-foreground: 210 18% 87%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 18% 14%;
+    --input: 222 18% 14%;
+    --ring: 193 90% 52%;
+    --radius: 0.1875rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  code, kbd, samp, pre, .font-mono {
+    font-family: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', monospace;
+  }
+}
+
+/* Slim custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Text selection */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: hsl(var(--foreground));
+}
