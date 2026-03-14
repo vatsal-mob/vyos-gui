@@ -2,7 +2,9 @@
 
 A self-hosted web interface for [VyOS](https://vyos.io/) Community Edition. Manage your homelab router without memorising CLI syntax.
 
-![VyOS GUI](docs/screenshot.png)
+![VyOS GUI Login](docs/screenshot.png)
+
+![VyOS GUI Dashboard](docs/vyos-dashboard.png)
 
 ## Features
 
