@@ -2,12 +2,14 @@ import SystemStats from "../components/dashboard/SystemStats";
 import InterfaceTraffic from "../components/dashboard/InterfaceTraffic";
 import TopTalkers from "../components/dashboard/TopTalkers";
 import FirewallFeed from "../components/dashboard/FirewallFeed";
+import ProtocolDonut from "../components/dashboard/ProtocolDonut";
 
 export default function Dashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
       <SystemStats />
+      <ProtocolDonut />
       <div>
         <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">Interface Traffic</h2>
         <InterfaceTraffic />

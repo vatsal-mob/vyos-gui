@@ -12,6 +12,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
 import { Plus, Trash2, Loader2 } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface FirewallRule {
   rule_number: number;
@@ -27,6 +29,34 @@ interface FirewallGroup {
   name: string;
   type: string;
   members: string[];
+}
+
+const actionColor: Record<string, string> = {
+  accept: "text-emerald-400",
+  drop: "text-red-400",
+  reject: "text-amber-400",
+};
+
+function ActionCell({ value }: ICellRendererParams) {
+  return (
+    <span className={`font-medium ${actionColor[value as string] ?? ""}`}>{value}</span>
+  );
+}
+
+function makeDeleteCell(chain: string, onDelete: (ruleNumber: number) => void) {
+  return function DeleteCell({ data }: ICellRendererParams<FirewallRule>) {
+    if (!data) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>}
+        title="Delete firewall rule?"
+        description={`Delete rule ${data.rule_number} (${data.action}) from chain ${chain}?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => onDelete(data.rule_number)}
+      />
+    );
+  };
 }
 
 function ChainRules({ chain }: { chain: string }) {
@@ -51,11 +81,19 @@ function ChainRules({ chain }: { chain: string }) {
     setShowForm(false);
   }
 
-  const actionColor: Record<string, string> = {
-    accept: "text-emerald-400",
-    drop: "text-red-400",
-    reject: "text-amber-400",
-  };
+  const DeleteCell = makeDeleteCell(chain, (ruleNumber) =>
+    deleteRule.mutate({ chain, ruleNumber })
+  );
+
+  const columnDefs: ColDef<FirewallRule>[] = [
+    { field: "rule_number", headerName: "#", maxWidth: 70 },
+    { field: "action", headerName: "Action", maxWidth: 100, cellRenderer: ActionCell },
+    { field: "protocol", headerName: "Protocol", maxWidth: 100, valueFormatter: ({ value }) => (value as string) || "any", cellClass: "text-muted-foreground" },
+    { field: "source", headerName: "Source", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
+    { field: "destination", headerName: "Destination", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
+    { field: "description", headerName: "Description", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
+    { headerName: "", maxWidth: 50, cellRenderer: DeleteCell, sortable: false },
+  ];
 
   return (
     <div className="space-y-2">
@@ -108,43 +146,14 @@ function ChainRules({ chain }: { chain: string }) {
       )}
       {isLoading ? (
         <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+      ) : !rules?.length ? (
+        <p className="py-6 text-center text-muted-foreground">No rules</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-              <th className="py-2 pr-3">#</th>
-              <th className="py-2 pr-3">Action</th>
-              <th className="py-2 pr-3">Protocol</th>
-              <th className="py-2 pr-3">Source</th>
-              <th className="py-2 pr-3">Destination</th>
-              <th className="py-2 pr-3">Description</th>
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {(rules ?? []).map((r: FirewallRule) => (
-              <tr key={r.rule_number} className="border-b last:border-0 hover:bg-muted/40">
-                <td className="py-2 pr-3">{r.rule_number}</td>
-                <td className={`py-2 pr-3 font-medium ${actionColor[r.action] ?? ""}`}>{r.action}</td>
-                <td className="py-2 pr-3 text-muted-foreground">{r.protocol || "any"}</td>
-                <td className="py-2 pr-3 font-mono text-xs">{r.source || "any"}</td>
-                <td className="py-2 pr-3 font-mono text-xs">{r.destination || "any"}</td>
-                <td className="py-2 pr-3 text-muted-foreground">{r.description || "—"}</td>
-                <td className="py-2">
-                  <ConfirmDialog
-                    trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>}
-                    title="Delete firewall rule?"
-                    description={`Delete rule ${r.rule_number} (${r.action}) from chain ${chain}?`}
-                    confirmLabel="Delete"
-                    destructive
-                    onConfirm={() => deleteRule.mutate({ chain, ruleNumber: r.rule_number })}
-                  />
-                </td>
-              </tr>
-            ))}
-            {!rules?.length && <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">No rules</td></tr>}
-          </tbody>
-        </table>
+        <DataGrid<FirewallRule>
+          columnDefs={columnDefs}
+          rowData={rules ?? []}
+          compact
+        />
       )}
     </div>
   );
@@ -157,6 +166,18 @@ export default function Firewall() {
 
   const allChains: string[] = chains ?? [];
   const activeChain = selectedChain ?? allChains[0] ?? null;
+
+  const groupColumnDefs: ColDef<FirewallGroup>[] = [
+    { field: "name", headerName: "Name", cellClass: "font-medium" },
+    { field: "type", headerName: "Type", maxWidth: 120, cellClass: "text-muted-foreground" },
+    {
+      field: "members",
+      headerName: "Members",
+      cellClass: "font-mono text-xs",
+      valueFormatter: ({ value }) => (value as string[])?.join(", ") || "—",
+      sortable: false,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -193,29 +214,18 @@ export default function Firewall() {
         </Card>
       )}
 
-      {/* Groups */}
       <Card>
         <CardHeader><CardTitle className="text-base">Firewall Groups</CardTitle></CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">Type</th>
-                <th className="py-2">Members</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(groups ?? []).map((g: FirewallGroup) => (
-                <tr key={g.name} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{g.name}</td>
-                  <td className="py-2 pr-4 text-muted-foreground">{g.type}</td>
-                  <td className="py-2 font-mono text-xs">{g.members.join(", ") || "—"}</td>
-                </tr>
-              ))}
-              {!groups?.length && <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No groups configured</td></tr>}
-            </tbody>
-          </table>
+          {!groups?.length ? (
+            <p className="py-6 text-center text-muted-foreground">No groups configured</p>
+          ) : (
+            <DataGrid<FirewallGroup>
+              columnDefs={groupColumnDefs}
+              rowData={groups ?? []}
+              compact
+            />
+          )}
         </CardContent>
       </Card>
     </div>

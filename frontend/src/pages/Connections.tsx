@@ -1,6 +1,8 @@
 import { useConntrack } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Loader2 } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface ConntrackEntry {
   protocol: string;
@@ -12,6 +14,61 @@ interface ConntrackEntry {
   bytes: number;
   packets: number;
 }
+
+function StateBadge({ value }: ICellRendererParams) {
+  if (!value) return <span className="text-muted-foreground">—</span>;
+  const cls =
+    value === "ESTABLISHED"
+      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      : value === "TIME_WAIT"
+      ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+      : "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${cls}`}>
+      {value}
+    </span>
+  );
+}
+
+function SrcCell({ data }: ICellRendererParams<ConntrackEntry>) {
+  if (!data) return null;
+  return <span className="font-mono text-xs">{data.src}{data.sport ? `:${data.sport}` : ""}</span>;
+}
+
+function DstCell({ data }: ICellRendererParams<ConntrackEntry>) {
+  if (!data) return null;
+  return <span className="font-mono text-xs">{data.dst}{data.dport ? `:${data.dport}` : ""}</span>;
+}
+
+const columnDefs: ColDef<ConntrackEntry>[] = [
+  {
+    field: "protocol",
+    headerName: "Protocol",
+    maxWidth: 100,
+    cellRenderer: ({ value }: ICellRendererParams) => (
+      <span className="font-mono uppercase text-xs">{value}</span>
+    ),
+  },
+  { headerName: "Source", cellRenderer: SrcCell, sortable: false },
+  { headerName: "Destination", cellRenderer: DstCell, sortable: false },
+  { field: "state", headerName: "State", maxWidth: 160, cellRenderer: StateBadge },
+  {
+    field: "bytes",
+    headerName: "Bytes",
+    maxWidth: 120,
+    type: "numericColumn",
+    valueFormatter: ({ value }) => (value as number)?.toLocaleString() ?? "—",
+    cellClass: "font-mono text-xs text-right",
+  },
+  {
+    field: "packets",
+    headerName: "Packets",
+    maxWidth: 120,
+    type: "numericColumn",
+    valueFormatter: ({ value }) => (value as number)?.toLocaleString() ?? "—",
+    cellClass: "font-mono text-xs text-right",
+  },
+];
 
 export default function Connections() {
   const { data, isLoading, isFetching } = useConntrack();
@@ -37,46 +94,12 @@ export default function Connections() {
           ) : entries.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">No active connections found.</p>
           ) : (
-            <div className="overflow-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Protocol</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Source</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">Destination</th>
-                    <th className="text-left py-2 px-2 font-medium text-muted-foreground">State</th>
-                    <th className="text-right py-2 px-2 font-medium text-muted-foreground">Bytes</th>
-                    <th className="text-right py-2 px-2 font-medium text-muted-foreground">Packets</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((e, i) => (
-                    <tr key={i} className="border-b hover:bg-muted/50 transition-colors">
-                      <td className="py-2 px-2 font-mono uppercase text-xs">{e.protocol}</td>
-                      <td className="py-2 px-2 font-mono text-xs">
-                        {e.src}{e.sport ? `:${e.sport}` : ""}
-                      </td>
-                      <td className="py-2 px-2 font-mono text-xs">
-                        {e.dst}{e.dport ? `:${e.dport}` : ""}
-                      </td>
-                      <td className="py-2 px-2">
-                        <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ${
-                          e.state === "ESTABLISHED"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : e.state === "TIME_WAIT"
-                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            : "bg-muted text-muted-foreground"
-                        }`}>
-                          {e.state || "—"}
-                        </span>
-                      </td>
-                      <td className="py-2 px-2 text-right font-mono text-xs">{e.bytes.toLocaleString()}</td>
-                      <td className="py-2 px-2 text-right font-mono text-xs">{e.packets.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataGrid<ConntrackEntry>
+              columnDefs={columnDefs}
+              rowData={entries}
+              pagination
+              pageSize={50}
+            />
           )}
           <p className="mt-3 text-xs text-muted-foreground">
             {entries.length} entries. Auto-refreshes every 5s.

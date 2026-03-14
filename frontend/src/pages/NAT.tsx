@@ -6,6 +6,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
 import { Plus, Trash2, Loader2 } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface NATRule {
   rule_number: number;
@@ -44,6 +46,36 @@ function NATTable({ type }: { type: "source" | "destination" }) {
     setForm({ rule_number: "", description: "", source_address: "", destination_address: "", translation_address: "", outbound_interface: "", inbound_interface: "", protocol: "" });
     setShowForm(false);
   }
+
+  function DeleteRuleCell({ data }: ICellRendererParams<NATRule>) {
+    if (!data) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>}
+        title="Delete NAT rule?"
+        description={`Delete ${type} NAT rule ${data.rule_number}?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => deleteRule.mutate({ type, ruleNumber: data.rule_number })}
+      />
+    );
+  }
+
+  const columnDefs: ColDef<NATRule>[] = [
+    { field: "rule_number", headerName: "#", maxWidth: 70 },
+    { field: "source_address", headerName: "Source", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
+    { field: "destination_address", headerName: "Destination", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "any" },
+    { field: "translation_address", headerName: "Translation", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "—" },
+    {
+      headerName: "Interface",
+      maxWidth: 110,
+      cellClass: "text-muted-foreground",
+      valueGetter: ({ data: row }) => row ? (row.outbound_interface || row.inbound_interface || "—") : "—",
+      sortable: false,
+    },
+    { field: "description", headerName: "Description", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
+    { headerName: "", maxWidth: 50, cellRenderer: DeleteRuleCell, sortable: false },
+  ];
 
   return (
     <Card>
@@ -101,43 +133,10 @@ function NATTable({ type }: { type: "source" | "destination" }) {
         )}
         {isLoading ? (
           <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+        ) : !rules?.length ? (
+          <p className="py-6 text-center text-muted-foreground">No rules configured</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                <th className="py-2 pr-3">#</th>
-                <th className="py-2 pr-3">Source</th>
-                <th className="py-2 pr-3">Destination</th>
-                <th className="py-2 pr-3">Translation</th>
-                <th className="py-2 pr-3">Interface</th>
-                <th className="py-2 pr-3">Description</th>
-                <th className="py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {(rules ?? []).map((r: NATRule) => (
-                <tr key={r.rule_number} className="border-b last:border-0 hover:bg-muted/40">
-                  <td className="py-2 pr-3">{r.rule_number}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">{r.source_address || "any"}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">{r.destination_address || "any"}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">{r.translation_address || "—"}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{r.outbound_interface || r.inbound_interface || "—"}</td>
-                  <td className="py-2 pr-3 text-muted-foreground">{r.description || "—"}</td>
-                  <td className="py-2">
-                    <ConfirmDialog
-                      trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>}
-                      title="Delete NAT rule?"
-                      description={`Delete ${type} NAT rule ${r.rule_number}?`}
-                      confirmLabel="Delete"
-                      destructive
-                      onConfirm={() => deleteRule.mutate({ type, ruleNumber: r.rule_number })}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!rules?.length && <tr><td colSpan={7} className="py-6 text-center text-muted-foreground">No rules configured</td></tr>}
-            </tbody>
-          </table>
+          <DataGrid<NATRule> columnDefs={columnDefs} rowData={rules ?? []} compact />
         )}
       </CardContent>
     </Card>

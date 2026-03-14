@@ -6,6 +6,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
 import { Plus, Trash2, Loader2 } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface StaticRoute {
   prefix: string;
@@ -38,11 +40,46 @@ export default function Routing() {
     setShowForm(false);
   }
 
+  function DeleteRouteCell({ data }: ICellRendererParams<StaticRoute>) {
+    if (!data) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
+        title="Delete static route?"
+        description={`Remove route to ${data.prefix} via ${data.next_hop}. This will be committed immediately.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => deleteRoute.mutate(data.prefix)}
+      />
+    );
+  }
+
+  const staticColumnDefs: ColDef<StaticRoute>[] = [
+    { field: "prefix", headerName: "Prefix", cellClass: "font-mono text-sm", sort: "asc" },
+    { field: "next_hop", headerName: "Next Hop", cellClass: "font-mono" },
+    { field: "distance", headerName: "Distance", maxWidth: 100 },
+    { field: "description", headerName: "Description", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
+    { headerName: "", maxWidth: 50, cellRenderer: DeleteRouteCell, sortable: false },
+  ];
+
+  const ribColumnDefs: ColDef<RouteEntry>[] = [
+    { field: "prefix", headerName: "Prefix", cellClass: "font-mono text-sm", sort: "asc" },
+    { field: "protocol", headerName: "Protocol", maxWidth: 110, cellClass: "text-muted-foreground" },
+    {
+      field: "next_hops",
+      headerName: "Next Hops",
+      cellClass: "font-mono text-xs",
+      valueFormatter: ({ value }) => (value as string[])?.join(", ") || "—",
+      sortable: false,
+    },
+    { field: "distance", headerName: "Distance", maxWidth: 100 },
+    { field: "uptime", headerName: "Uptime", maxWidth: 110, cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Routing</h1>
 
-      {/* Static routes */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Static Routes</CardTitle>
@@ -77,74 +114,34 @@ export default function Routing() {
               </div>
             </form>
           )}
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                <th className="py-2 pr-4">Prefix</th>
-                <th className="py-2 pr-4">Next Hop</th>
-                <th className="py-2 pr-4">Distance</th>
-                <th className="py-2 pr-4">Description</th>
-                <th className="py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {staticLoading && <tr><td colSpan={5} className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></td></tr>}
-              {(staticRoutes ?? []).map((r: StaticRoute) => (
-                <tr key={`${r.prefix}-${r.next_hop}`} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-mono">{r.prefix}</td>
-                  <td className="py-2 pr-4 font-mono">{r.next_hop}</td>
-                  <td className="py-2 pr-4">{r.distance}</td>
-                  <td className="py-2 pr-4 text-muted-foreground">{r.description || "—"}</td>
-                  <td className="py-2">
-                    <ConfirmDialog
-                      trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
-                      title="Delete static route?"
-                      description={`Remove route to ${r.prefix} via ${r.next_hop}. This will be committed immediately.`}
-                      confirmLabel="Delete"
-                      destructive
-                      onConfirm={() => deleteRoute.mutate(r.prefix)}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!staticLoading && !staticRoutes?.length && (
-                <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No static routes configured</td></tr>
-              )}
-            </tbody>
-          </table>
+          {staticLoading ? (
+            <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          ) : !staticRoutes?.length ? (
+            <p className="py-8 text-center text-muted-foreground">No static routes configured</p>
+          ) : (
+            <DataGrid<StaticRoute>
+              columnDefs={staticColumnDefs}
+              rowData={staticRoutes ?? []}
+              compact
+            />
+          )}
         </CardContent>
       </Card>
 
-      {/* RIB */}
       <Card>
         <CardHeader><CardTitle className="text-base">Routing Table (RIB)</CardTitle></CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                <th className="py-2 pr-4">Prefix</th>
-                <th className="py-2 pr-4">Protocol</th>
-                <th className="py-2 pr-4">Next Hops</th>
-                <th className="py-2 pr-4">Distance</th>
-                <th className="py-2">Uptime</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ribLoading && <tr><td colSpan={5} className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></td></tr>}
-              {(ribRoutes ?? []).map((r: RouteEntry, i: number) => (
-                <tr key={i} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-mono">{r.prefix}</td>
-                  <td className="py-2 pr-4 text-muted-foreground">{r.protocol}</td>
-                  <td className="py-2 pr-4 font-mono text-xs">{r.next_hops.join(", ") || "—"}</td>
-                  <td className="py-2 pr-4">{r.distance}</td>
-                  <td className="py-2 text-muted-foreground">{r.uptime || "—"}</td>
-                </tr>
-              ))}
-              {!ribLoading && !ribRoutes?.length && (
-                <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No routes in table</td></tr>
-              )}
-            </tbody>
-          </table>
+          {ribLoading ? (
+            <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          ) : !ribRoutes?.length ? (
+            <p className="py-8 text-center text-muted-foreground">No routes in table</p>
+          ) : (
+            <DataGrid<RouteEntry>
+              columnDefs={ribColumnDefs}
+              rowData={ribRoutes ?? []}
+              compact
+            />
+          )}
         </CardContent>
       </Card>
     </div>

@@ -2,6 +2,8 @@ import { useFlowAccounting } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Loader2, Activity, RefreshCw } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface Flow {
   interface: string;
@@ -11,6 +13,12 @@ interface Flow {
   dst_port: number;
   protocol: string;
   packets: number;
+  bytes: number;
+}
+
+interface HostStat {
+  ip: string;
+  flows: number;
   bytes: number;
 }
 
@@ -28,12 +36,57 @@ function formatBytes(b: number): string {
   return `${b} B`;
 }
 
+function BytesCell({ value }: ICellRendererParams) {
+  return <span className="font-medium font-mono text-xs">{formatBytes(value as number)}</span>;
+}
+
+function SrcCell({ data }: ICellRendererParams<Flow>) {
+  if (!data) return null;
+  return <span className="font-mono text-xs">{data.src_ip}{data.src_port ? `:${data.src_port}` : ""}</span>;
+}
+
+function DstCell({ data }: ICellRendererParams<Flow>) {
+  if (!data) return null;
+  return <span className="font-mono text-xs">{data.dst_ip}{data.dst_port ? `:${data.dst_port}` : ""}</span>;
+}
+
+const hostColumnDefs: ColDef<HostStat>[] = [
+  { field: "ip", headerName: "Source IP", cellClass: "font-mono text-xs" },
+  { field: "flows", headerName: "Flows", maxWidth: 90, cellClass: "text-muted-foreground text-xs" },
+  {
+    field: "bytes",
+    headerName: "Bytes",
+    maxWidth: 120,
+    sort: "desc",
+    cellRenderer: BytesCell,
+  },
+];
+
+const flowColumnDefs: ColDef<Flow>[] = [
+  { field: "interface", headerName: "Iface", maxWidth: 80, cellClass: "text-muted-foreground text-xs" },
+  { headerName: "Src", cellRenderer: SrcCell, sortable: false, minWidth: 130 },
+  { headerName: "Dst", cellRenderer: DstCell, sortable: false, minWidth: 130 },
+  {
+    field: "protocol",
+    headerName: "Proto",
+    maxWidth: 80,
+    valueFormatter: ({ value }) => PROTO_MAP[value as string] ?? (value as string),
+    cellClass: "text-muted-foreground text-xs",
+  },
+  { field: "packets", headerName: "Pkts", maxWidth: 80, cellClass: "text-muted-foreground text-xs" },
+  {
+    field: "bytes",
+    headerName: "Bytes",
+    maxWidth: 120,
+    sort: "desc",
+    cellRenderer: BytesCell,
+  },
+];
+
 export default function FlowAccounting() {
   const { data, isLoading, refetch, isFetching } = useFlowAccounting();
-
   const flows: Flow[] = data?.flows ?? [];
 
-  // Aggregate per-host stats
   const hostStats = flows.reduce<Record<string, { bytes: number; flows: number }>>((acc, f) => {
     const key = f.src_ip;
     if (!acc[key]) acc[key] = { bytes: 0, flows: 0 };
@@ -42,9 +95,10 @@ export default function FlowAccounting() {
     return acc;
   }, {});
 
-  const topHosts = Object.entries(hostStats)
+  const topHosts: HostStat[] = Object.entries(hostStats)
     .sort((a, b) => b[1].bytes - a[1].bytes)
-    .slice(0, 10);
+    .slice(0, 10)
+    .map(([ip, s]) => ({ ip, ...s }));
 
   return (
     <div className="space-y-6">
@@ -59,7 +113,6 @@ export default function FlowAccounting() {
         </Button>
       </div>
 
-      {/* Summary stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Flows</p>
@@ -78,7 +131,6 @@ export default function FlowAccounting() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Top hosts */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Top Source IPs</CardTitle>
@@ -91,32 +143,21 @@ export default function FlowAccounting() {
             ) : !topHosts.length ? (
               <p className="py-4 text-center text-sm text-muted-foreground">No flow data</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 pr-4 font-medium">Source IP</th>
-                    <th className="py-2 pr-4 font-medium">Flows</th>
-                    <th className="py-2 font-medium">Bytes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topHosts.map(([ip, stats]) => (
-                    <tr key={ip} className="border-b last:border-0 hover:bg-muted/40">
-                      <td className="py-1.5 pr-4 font-mono">{ip}</td>
-                      <td className="py-1.5 pr-4 text-muted-foreground">{stats.flows}</td>
-                      <td className="py-1.5 font-medium">{formatBytes(stats.bytes)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataGrid<HostStat>
+                columnDefs={hostColumnDefs}
+                rowData={topHosts}
+                compact
+              />
             )}
           </CardContent>
         </Card>
 
-        {/* Flow table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Recent Flows <span className="text-xs font-normal text-muted-foreground">(sorted by bytes)</span></CardTitle>
+            <CardTitle className="text-base">
+              Recent Flows{" "}
+              <span className="text-xs font-normal text-muted-foreground">(sorted by bytes)</span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -124,40 +165,16 @@ export default function FlowAccounting() {
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               </div>
             ) : !flows.length ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No flows. Is flow-accounting configured?</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No flows. Is flow-accounting configured?
+              </p>
             ) : (
-              <div className="overflow-x-auto max-h-96 overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-card">
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-3 font-medium">Iface</th>
-                      <th className="py-2 pr-3 font-medium">Src</th>
-                      <th className="py-2 pr-3 font-medium">Dst</th>
-                      <th className="py-2 pr-3 font-medium">Proto</th>
-                      <th className="py-2 pr-3 font-medium">Pkts</th>
-                      <th className="py-2 font-medium">Bytes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {flows.slice(0, 100).map((f, i) => (
-                      <tr key={i} className="border-b last:border-0 hover:bg-muted/40">
-                        <td className="py-1 pr-3 text-muted-foreground">{f.interface}</td>
-                        <td className="py-1 pr-3 font-mono whitespace-nowrap">
-                          {f.src_ip}{f.src_port ? `:${f.src_port}` : ""}
-                        </td>
-                        <td className="py-1 pr-3 font-mono whitespace-nowrap">
-                          {f.dst_ip}{f.dst_port ? `:${f.dst_port}` : ""}
-                        </td>
-                        <td className="py-1 pr-3 text-muted-foreground">
-                          {PROTO_MAP[f.protocol] ?? f.protocol}
-                        </td>
-                        <td className="py-1 pr-3 text-muted-foreground">{f.packets}</td>
-                        <td className="py-1 font-medium">{formatBytes(f.bytes)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataGrid<Flow>
+                columnDefs={flowColumnDefs}
+                rowData={flows.slice(0, 100)}
+                height={384}
+                compact
+              />
             )}
           </CardContent>
         </Card>

@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSuricataAlerts } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Loader2, ShieldAlert, RefreshCw } from "lucide-react";
+import type { ColDef, GridApi, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface Alert {
   timestamp: string;
@@ -33,28 +35,68 @@ const SEVERITY_LABELS: Record<number, string> = {
   3: "Low",
 };
 
+function SeverityBadge({ value }: ICellRendererParams) {
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${SEVERITY_CLASSES[value as number] ?? "bg-muted"}`}>
+      {SEVERITY_LABELS[value as number] ?? value}
+    </span>
+  );
+}
+
+function ActionBadge({ value }: ICellRendererParams) {
+  return (
+    <span className={`rounded px-1.5 py-0.5 text-xs ${value === "allowed" ? "bg-muted text-muted-foreground" : "bg-destructive/20 text-destructive"}`}>
+      {value}
+    </span>
+  );
+}
+
+function SrcCell({ data }: ICellRendererParams<Alert>) {
+  if (!data) return null;
+  return <span className="font-mono text-xs">{data.src_ip}{data.src_port ? `:${data.src_port}` : ""}</span>;
+}
+
+function DstCell({ data }: ICellRendererParams<Alert>) {
+  if (!data) return null;
+  return <span className="font-mono text-xs">{data.dest_ip}{data.dest_port ? `:${data.dest_port}` : ""}</span>;
+}
+
+function formatTime(ts: string) {
+  try { return new Date(ts).toLocaleString(); } catch { return ts; }
+}
+
+const columnDefs: ColDef<Alert>[] = [
+  {
+    field: "timestamp",
+    headerName: "Time",
+    minWidth: 160,
+    valueFormatter: ({ value }) => formatTime(value as string),
+    cellClass: "text-muted-foreground whitespace-nowrap text-xs",
+  },
+  { field: "severity", headerName: "Sev", maxWidth: 90, cellRenderer: SeverityBadge },
+  { field: "interface", headerName: "Iface", maxWidth: 90, cellClass: "font-mono text-muted-foreground text-xs" },
+  { headerName: "Src", cellRenderer: SrcCell, sortable: false, minWidth: 140 },
+  { headerName: "Dst", cellRenderer: DstCell, sortable: false, minWidth: 140 },
+  { field: "proto", headerName: "Proto", maxWidth: 80, cellClass: "font-mono text-muted-foreground text-xs" },
+  { field: "action", headerName: "Action", maxWidth: 100, cellRenderer: ActionBadge },
+  {
+    field: "signature",
+    headerName: "Signature",
+    flex: 2,
+    cellClass: "text-muted-foreground text-xs truncate",
+    tooltipField: "signature",
+  },
+];
+
 export default function IDS() {
   const [lines, setLines] = useState(200);
-  const [filter, setFilter] = useState("");
   const { data, isLoading, refetch, isFetching } = useSuricataAlerts(lines);
+  const gridApiRef = useRef<GridApi<Alert> | null>(null);
 
   const alerts: Alert[] = data?.alerts ?? [];
-  const filtered = filter
-    ? alerts.filter(
-        (a) =>
-          a.src_ip.includes(filter) ||
-          a.dest_ip.includes(filter) ||
-          a.signature.toLowerCase().includes(filter.toLowerCase()) ||
-          a.category.toLowerCase().includes(filter.toLowerCase())
-      )
-    : alerts;
 
-  function formatTime(ts: string) {
-    try {
-      return new Date(ts).toLocaleString();
-    } catch {
-      return ts;
-    }
+  function handleFilterChange(e: React.ChangeEvent<HTMLInputElement>) {
+    gridApiRef.current?.setGridOption("quickFilterText", e.target.value);
   }
 
   return (
@@ -102,8 +144,7 @@ export default function IDS() {
           <Input
             className="max-w-xs h-8 text-sm"
             placeholder="Filter by IP, signature, category…"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={handleFilterChange}
           />
         </CardHeader>
         <CardContent>
@@ -111,57 +152,16 @@ export default function IDS() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : !filtered.length ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {filter ? "No alerts match the filter." : "No Suricata alerts found."}
-            </p>
+          ) : alerts.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No Suricata alerts found.</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-2 pr-3 font-medium">Time</th>
-                    <th className="py-2 pr-3 font-medium">Sev</th>
-                    <th className="py-2 pr-3 font-medium">Iface</th>
-                    <th className="py-2 pr-3 font-medium">Src</th>
-                    <th className="py-2 pr-3 font-medium">Dst</th>
-                    <th className="py-2 pr-3 font-medium">Proto</th>
-                    <th className="py-2 pr-3 font-medium">Action</th>
-                    <th className="py-2 font-medium">Signature</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((a, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-muted/40">
-                      <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">
-                        {formatTime(a.timestamp)}
-                      </td>
-                      <td className="py-1.5 pr-3">
-                        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${SEVERITY_CLASSES[a.severity] ?? "bg-muted"}`}>
-                          {SEVERITY_LABELS[a.severity] ?? a.severity}
-                        </span>
-                      </td>
-                      <td className="py-1.5 pr-3 font-mono text-muted-foreground">{a.interface || "—"}</td>
-                      <td className="py-1.5 pr-3 font-mono whitespace-nowrap">
-                        {a.src_ip}{a.src_port ? `:${a.src_port}` : ""}
-                      </td>
-                      <td className="py-1.5 pr-3 font-mono whitespace-nowrap">
-                        {a.dest_ip}{a.dest_port ? `:${a.dest_port}` : ""}
-                      </td>
-                      <td className="py-1.5 pr-3 font-mono text-muted-foreground">{a.proto}</td>
-                      <td className="py-1.5 pr-3">
-                        <span className={`rounded px-1.5 py-0.5 text-xs ${a.action === "allowed" ? "bg-muted text-muted-foreground" : "bg-destructive/20 text-destructive"}`}>
-                          {a.action}
-                        </span>
-                      </td>
-                      <td className="py-1.5 text-muted-foreground max-w-xs truncate" title={a.signature}>
-                        {a.signature}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataGrid<Alert>
+              columnDefs={columnDefs}
+              rowData={alerts}
+              pagination
+              pageSize={50}
+              onGridReady={(params) => { gridApiRef.current = params.api; }}
+            />
           )}
         </CardContent>
       </Card>

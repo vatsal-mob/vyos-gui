@@ -6,6 +6,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
 import { Plus, Trash2, Loader2, Pin } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface DHCPPool {
   name: string;
@@ -25,6 +27,13 @@ interface DHCPLease {
   expiry: string;
   pool: string;
   state: string;
+}
+
+interface StaticMapping {
+  pool: string;
+  name: string;
+  ip: string;
+  mac: string;
 }
 
 interface StaticMappingForm {
@@ -60,6 +69,91 @@ export default function DHCP() {
     setShowForm(false);
   }
 
+  function DeletePoolCell({ data }: ICellRendererParams<DHCPPool>) {
+    if (!data) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
+        title="Delete DHCP pool?"
+        description={`Delete pool "${data.name}" (${data.subnet})?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => deletePool.mutate(data.name)}
+      />
+    );
+  }
+
+  function DeleteMappingCell({ data }: ICellRendererParams<StaticMapping>) {
+    if (!data) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
+        title="Delete static mapping?"
+        description={`Remove reservation "${data.name}" (${data.ip}) from pool "${data.pool}"?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => deleteStaticMapping.mutate({ pool: data.pool, name: data.name })}
+      />
+    );
+  }
+
+  function PinLeaseCell({ data }: ICellRendererParams<DHCPLease>) {
+    if (!data) return null;
+    return (
+      <button
+        title="Add as static mapping"
+        className="text-muted-foreground hover:text-primary"
+        onClick={() =>
+          setMappingForm({
+            leaseIp: data.ip,
+            leaseMac: data.mac,
+            leasePool: data.pool,
+            name: data.hostname || data.ip.replace(/\./g, "-"),
+          })
+        }
+      >
+        <Pin className="h-4 w-4" />
+      </button>
+    );
+  }
+
+  const poolColumnDefs: ColDef<DHCPPool>[] = [
+    { field: "name", headerName: "Name", cellClass: "font-medium" },
+    { field: "subnet", headerName: "Subnet", cellClass: "font-mono text-xs" },
+    {
+      headerName: "Range",
+      cellClass: "font-mono text-xs",
+      valueGetter: ({ data }) => data ? `${data.range_start} – ${data.range_stop}` : "",
+      sortable: false,
+    },
+    { field: "default_router", headerName: "Router", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "—" },
+    {
+      field: "dns_servers",
+      headerName: "DNS",
+      cellClass: "font-mono text-xs",
+      valueFormatter: ({ value }) => (value as string[])?.join(", ") || "—",
+      sortable: false,
+    },
+    { headerName: "", maxWidth: 50, cellRenderer: DeletePoolCell, sortable: false },
+  ];
+
+  const mappingColumnDefs: ColDef<StaticMapping>[] = [
+    { field: "name", headerName: "Name", cellClass: "font-medium" },
+    { field: "pool", headerName: "Pool", cellClass: "text-muted-foreground" },
+    { field: "ip", headerName: "IP", cellClass: "font-mono" },
+    { field: "mac", headerName: "MAC", cellClass: "font-mono text-xs" },
+    { headerName: "", maxWidth: 50, cellRenderer: DeleteMappingCell, sortable: false },
+  ];
+
+  const leaseColumnDefs: ColDef<DHCPLease>[] = [
+    { field: "ip", headerName: "IP", cellClass: "font-mono" },
+    { field: "mac", headerName: "MAC", cellClass: "font-mono text-xs" },
+    { field: "hostname", headerName: "Hostname", valueFormatter: ({ value }) => (value as string) || "—" },
+    { field: "expiry", headerName: "Expiry", cellClass: "text-muted-foreground", valueFormatter: ({ value }) => (value as string) || "—" },
+    { field: "state", headerName: "State", maxWidth: 100, cellClass: "text-muted-foreground" },
+    { headerName: "", maxWidth: 50, cellRenderer: PinLeaseCell, sortable: false },
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">DHCP</h1>
@@ -91,41 +185,10 @@ export default function DHCP() {
           )}
           {poolsLoading ? (
             <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          ) : !pools?.length ? (
+            <p className="py-8 text-center text-muted-foreground">No pools configured</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                  <th className="py-2 pr-4">Name</th>
-                  <th className="py-2 pr-4">Subnet</th>
-                  <th className="py-2 pr-4">Range</th>
-                  <th className="py-2 pr-4">Router</th>
-                  <th className="py-2 pr-4">DNS</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {(pools ?? []).map((p: DHCPPool) => (
-                  <tr key={p.name} className="border-b last:border-0 hover:bg-muted/40">
-                    <td className="py-2 pr-4 font-medium">{p.name}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{p.subnet}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{p.range_start} – {p.range_stop}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{p.default_router || "—"}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{p.dns_servers.join(", ") || "—"}</td>
-                    <td className="py-2">
-                      <ConfirmDialog
-                        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
-                        title="Delete DHCP pool?"
-                        description={`Delete pool "${p.name}" (${p.subnet})?`}
-                        confirmLabel="Delete"
-                        destructive
-                        onConfirm={() => deletePool.mutate(p.name)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {!pools?.length && <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No pools configured</td></tr>}
-              </tbody>
-            </table>
+            <DataGrid<DHCPPool> columnDefs={poolColumnDefs} rowData={pools ?? []} compact />
           )}
         </CardContent>
       </Card>
@@ -136,41 +199,10 @@ export default function DHCP() {
         <CardContent>
           {mappingsLoading ? (
             <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          ) : !staticMappings?.length ? (
+            <p className="py-6 text-center text-muted-foreground">No static mappings configured</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                  <th className="py-2 pr-4">Name</th>
-                  <th className="py-2 pr-4">Pool</th>
-                  <th className="py-2 pr-4">IP</th>
-                  <th className="py-2 pr-4">MAC</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {(staticMappings ?? []).map((m: { pool: string; name: string; ip: string; mac: string }) => (
-                  <tr key={`${m.pool}/${m.name}`} className="border-b last:border-0 hover:bg-muted/40">
-                    <td className="py-2 pr-4 font-medium">{m.name}</td>
-                    <td className="py-2 pr-4 text-muted-foreground">{m.pool}</td>
-                    <td className="py-2 pr-4 font-mono">{m.ip || "—"}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{m.mac || "—"}</td>
-                    <td className="py-2">
-                      <ConfirmDialog
-                        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
-                        title="Delete static mapping?"
-                        description={`Remove reservation "${m.name}" (${m.ip}) from pool "${m.pool}"?`}
-                        confirmLabel="Delete"
-                        destructive
-                        onConfirm={() => deleteStaticMapping.mutate({ pool: m.pool, name: m.name })}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {!staticMappings?.length && (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No static mappings configured</td></tr>
-                )}
-              </tbody>
-            </table>
+            <DataGrid<StaticMapping> columnDefs={mappingColumnDefs} rowData={staticMappings ?? []} compact />
           )}
         </CardContent>
       </Card>
@@ -181,47 +213,10 @@ export default function DHCP() {
         <CardContent className="space-y-3">
           {leasesLoading ? (
             <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          ) : !leases?.length ? (
+            <p className="py-6 text-center text-muted-foreground">No active leases</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                  <th className="py-2 pr-4">IP</th>
-                  <th className="py-2 pr-4">MAC</th>
-                  <th className="py-2 pr-4">Hostname</th>
-                  <th className="py-2 pr-4">Expiry</th>
-                  <th className="py-2 pr-4">State</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {(leases ?? []).map((l: DHCPLease, i: number) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-muted/40">
-                    <td className="py-2 pr-4 font-mono">{l.ip}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{l.mac}</td>
-                    <td className="py-2 pr-4">{l.hostname || "—"}</td>
-                    <td className="py-2 pr-4 text-muted-foreground">{l.expiry || "—"}</td>
-                    <td className="py-2 pr-4 text-muted-foreground">{l.state || "—"}</td>
-                    <td className="py-2">
-                      <button
-                        title="Add as static mapping"
-                        className="text-muted-foreground hover:text-primary"
-                        onClick={() =>
-                          setMappingForm({
-                            leaseIp: l.ip,
-                            leaseMac: l.mac,
-                            leasePool: l.pool,
-                            name: l.hostname || l.ip.replace(/\./g, "-"),
-                          })
-                        }
-                      >
-                        <Pin className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {!leases?.length && <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No active leases</td></tr>}
-              </tbody>
-            </table>
+            <DataGrid<DHCPLease> columnDefs={leaseColumnDefs} rowData={leases ?? []} compact />
           )}
 
           {/* Static mapping inline form */}

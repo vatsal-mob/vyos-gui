@@ -3,14 +3,8 @@ import { useSystemInfo } from "../../hooks/useVyos";
 import { useMetricsStore } from "../../store/metrics";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Cpu, MemoryStick, Clock, Server } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import ReactApexChart from "react-apexcharts";
+import type { ApexOptions } from "apexcharts";
 
 function StatCard({
   title,
@@ -46,40 +40,55 @@ function MiniChart({
   color: string;
   label: string;
 }) {
-  const chartData = data.map((p) => ({
-    t: new Date(p.time).toLocaleTimeString(),
-    v: p.value,
-  }));
+  const series = [{ name: label, data: data.map((p) => p.value) }];
+
+  const options: ApexOptions = {
+    chart: {
+      type: "area",
+      sparkline: { enabled: false },
+      toolbar: { show: false },
+      animations: { enabled: false },
+      background: "transparent",
+    },
+    theme: { mode: "dark" },
+    stroke: { curve: "smooth", width: 2, colors: [color] },
+    fill: {
+      type: "gradient",
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.3,
+        opacityTo: 0,
+        stops: [0, 95],
+        colorStops: [
+          { offset: 0, color, opacity: 0.3 },
+          { offset: 95, color, opacity: 0 },
+        ],
+      },
+    },
+    colors: [color],
+    xaxis: { labels: { show: false }, axisBorder: { show: false }, axisTicks: { show: false } },
+    yaxis: { min: 0, max: 100, labels: { show: false } },
+    grid: { show: false },
+    tooltip: {
+      theme: "dark",
+      y: { formatter: (val: number) => `${val.toFixed(1)}%` },
+      x: { show: false },
+    },
+    dataLabels: { enabled: false },
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={100}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id={`grad-${label}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="t" hide />
-            <YAxis domain={[0, 100]} hide />
-            <Tooltip
-              formatter={(val: number) => [`${val.toFixed(1)}%`, label]}
-              labelFormatter={() => ""}
-            />
-            <Area
-              type="monotone"
-              dataKey="v"
-              stroke={color}
-              fill={`url(#grad-${label})`}
-              strokeWidth={2}
-              dot={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <ReactApexChart
+          type="area"
+          series={series}
+          options={options}
+          height={100}
+        />
         <p className="text-right text-xs text-muted-foreground mt-1">
           {data.length > 0 ? `${data[data.length - 1].value.toFixed(1)}%` : "—"}
         </p>

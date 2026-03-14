@@ -3,6 +3,50 @@ import StatusBadge from "../components/shared/StatusBadge";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "../components/ui/card";
 import { Loader2 } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
+
+interface Iface {
+  name: string;
+  type: string;
+  addresses: string[];
+  state: string;
+  mac: string;
+  mtu: number | null;
+}
+
+function StatusCell({ value }: ICellRendererParams) {
+  return <StatusBadge status={value as string} />;
+}
+
+function AddressCell({ value }: ICellRendererParams<Iface>) {
+  const addrs = value as string[];
+  if (!addrs?.length) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className="font-mono text-xs">
+      {addrs.join(", ")}
+    </span>
+  );
+}
+
+function EditCell({ data }: ICellRendererParams<Iface>) {
+  if (!data) return null;
+  return (
+    <Link to={`/interfaces/${data.name}`} className="text-primary hover:underline text-xs">
+      Edit
+    </Link>
+  );
+}
+
+const columnDefs: ColDef<Iface>[] = [
+  { field: "name", headerName: "Name", maxWidth: 120, cellClass: "font-mono font-medium text-sm" },
+  { field: "type", headerName: "Type", maxWidth: 100, cellClass: "text-muted-foreground" },
+  { field: "addresses", headerName: "IP Addresses", cellRenderer: AddressCell, sortable: false },
+  { field: "state", headerName: "Status", maxWidth: 110, cellRenderer: StatusCell },
+  { field: "mac", headerName: "MAC", cellClass: "font-mono text-xs text-muted-foreground", maxWidth: 160 },
+  { field: "mtu", headerName: "MTU", maxWidth: 80, cellClass: "text-muted-foreground" },
+  { headerName: "", maxWidth: 60, cellRenderer: EditCell, sortable: false },
+];
 
 export default function Interfaces() {
   const { data: interfaces, isLoading, isError } = useInterfaces();
@@ -19,65 +63,14 @@ export default function Interfaces() {
       {!isLoading && !isError && (
         <Card>
           <CardContent className="p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">IP Addresses</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">MAC</th>
-                  <th className="px-4 py-3">MTU</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {(interfaces ?? []).map((iface: {
-                  name: string;
-                  type: string;
-                  addresses: string[];
-                  state: string;
-                  mac: string;
-                  mtu: number | null;
-                }) => (
-                  <tr key={iface.name} className="border-b last:border-0 hover:bg-muted/40">
-                    <td className="px-4 py-3 font-mono font-medium">{iface.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{iface.type}</td>
-                    <td className="px-4 py-3">
-                      {iface.addresses.length ? (
-                        iface.addresses.map((a: string) => (
-                          <span key={a} className="mr-2 font-mono text-xs">
-                            {a}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={iface.state} />
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{iface.mac || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{iface.mtu ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/interfaces/${iface.name}`}
-                        className="text-primary hover:underline text-xs"
-                      >
-                        Edit
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {!interfaces?.length && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                      No interfaces found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            {!interfaces?.length ? (
+              <p className="px-4 py-8 text-center text-muted-foreground">No interfaces found</p>
+            ) : (
+              <DataGrid<Iface>
+                columnDefs={columnDefs}
+                rowData={interfaces ?? []}
+              />
+            )}
           </CardContent>
         </Card>
       )}

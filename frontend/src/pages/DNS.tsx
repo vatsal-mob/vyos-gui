@@ -14,12 +14,19 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
 import { Plus, Trash2, Loader2, Save } from "lucide-react";
+import type { ColDef, ICellRendererParams } from "ag-grid-community";
+import DataGrid from "../components/shared/DataGrid";
 
 interface DNSRecord {
   domain: string;
   type: string;
   name: string;
   value: string;
+}
+
+interface DomainOverrideRow {
+  domain: string;
+  server: string;
 }
 
 interface DNSForwarding {
@@ -72,12 +79,61 @@ export default function DNS() {
 
   const displayNS = nsText ?? data.nameservers.join("\n");
 
+  const domainRows: DomainOverrideRow[] = Object.entries(data.domain_overrides).map(([domain, server]) => ({ domain, server }));
+
+  function DeleteDomainCell({ data: row }: ICellRendererParams<DomainOverrideRow>) {
+    if (!row) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
+        title="Delete domain override?"
+        description={`Remove DNS override for ${row.domain}?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => deleteDomain.mutate(row.domain)}
+      />
+    );
+  }
+
+  function DeleteRecordCell({ data: row }: ICellRendererParams<DNSRecord>) {
+    if (!row) return null;
+    return (
+      <ConfirmDialog
+        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
+        title="Delete DNS record?"
+        description={`Remove ${row.type} record "${row.name}" from ${row.domain}?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => deleteRecord.mutate({ domain: row.domain, type: row.type, name: row.name })}
+      />
+    );
+  }
+
+  function TypeBadgeCell({ value }: ICellRendererParams) {
+    return (
+      <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">{value as string}</span>
+    );
+  }
+
+  const domainColumnDefs: ColDef<DomainOverrideRow>[] = [
+    { field: "domain", headerName: "Domain", cellClass: "font-mono" },
+    { field: "server", headerName: "Server", cellClass: "font-mono" },
+    { headerName: "", maxWidth: 50, cellRenderer: DeleteDomainCell, sortable: false },
+  ];
+
+  const recordColumnDefs: ColDef<DNSRecord>[] = [
+    { field: "domain", headerName: "Domain", cellClass: "font-mono text-xs" },
+    { field: "type", headerName: "Type", maxWidth: 80, cellRenderer: TypeBadgeCell },
+    { field: "name", headerName: "Name", cellClass: "font-mono text-xs" },
+    { field: "value", headerName: "Value", cellClass: "font-mono text-xs", valueFormatter: ({ value }) => (value as string) || "—" },
+    { headerName: "", maxWidth: 50, cellRenderer: DeleteRecordCell, sortable: false },
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">DNS</h1>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Nameservers */}
         <Card>
           <CardHeader><CardTitle className="text-base">Nameservers</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -95,7 +151,6 @@ export default function DNS() {
           </CardContent>
         </Card>
 
-        {/* Listen addresses */}
         <Card>
           <CardHeader><CardTitle className="text-base">Listen Addresses</CardTitle></CardHeader>
           <CardContent>
@@ -110,30 +165,17 @@ export default function DNS() {
         </Card>
       </div>
 
-      {/* Domain overrides */}
       <Card>
         <CardHeader><CardTitle className="text-base">Domain Overrides</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleAddDomain} className="flex gap-2">
             <div className="space-y-1 flex-1">
               <Label className="text-xs">Domain</Label>
-              <Input
-                value={domainForm.domain}
-                onChange={(e) => setDomainForm({ ...domainForm, domain: e.target.value })}
-                placeholder="example.local"
-                required
-                className="font-mono"
-              />
+              <Input value={domainForm.domain} onChange={(e) => setDomainForm({ ...domainForm, domain: e.target.value })} placeholder="example.local" required className="font-mono" />
             </div>
             <div className="space-y-1 flex-1">
               <Label className="text-xs">DNS Server</Label>
-              <Input
-                value={domainForm.server}
-                onChange={(e) => setDomainForm({ ...domainForm, server: e.target.value })}
-                placeholder="192.168.1.53"
-                required
-                className="font-mono"
-              />
+              <Input value={domainForm.server} onChange={(e) => setDomainForm({ ...domainForm, server: e.target.value })} placeholder="192.168.1.53" required className="font-mono" />
             </div>
             <div className="flex items-end">
               <Button type="submit" size="sm" disabled={addDomain.isPending}>
@@ -142,61 +184,25 @@ export default function DNS() {
               </Button>
             </div>
           </form>
-
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                <th className="py-2 pr-4">Domain</th>
-                <th className="py-2 pr-4">Server</th>
-                <th className="py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(data.domain_overrides).map(([domain, server]) => (
-                <tr key={domain} className="border-b last:border-0 hover:bg-muted/40">
-                  <td className="py-2 pr-4 font-mono">{domain}</td>
-                  <td className="py-2 pr-4 font-mono">{server}</td>
-                  <td className="py-2">
-                    <ConfirmDialog
-                      trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
-                      title="Delete domain override?"
-                      description={`Remove DNS override for ${domain}?`}
-                      confirmLabel="Delete"
-                      destructive
-                      onConfirm={() => deleteDomain.mutate(domain)}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {!Object.keys(data.domain_overrides).length && (
-                <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">No domain overrides</td></tr>
-              )}
-            </tbody>
-          </table>
+          {domainRows.length === 0 ? (
+            <p className="py-6 text-center text-muted-foreground">No domain overrides</p>
+          ) : (
+            <DataGrid<DomainOverrideRow> columnDefs={domainColumnDefs} rowData={domainRows} compact />
+          )}
         </CardContent>
       </Card>
-      {/* Authoritative DNS Records */}
+
       <Card>
         <CardHeader><CardTitle className="text-base">Authoritative DNS Records</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleAddRecord} className="grid grid-cols-2 gap-2 md:grid-cols-4">
             <div className="space-y-1">
               <Label className="text-xs">Domain</Label>
-              <Input
-                value={recordForm.domain}
-                onChange={(e) => setRecordForm({ ...recordForm, domain: e.target.value })}
-                placeholder="example.lan"
-                required
-                className="font-mono"
-              />
+              <Input value={recordForm.domain} onChange={(e) => setRecordForm({ ...recordForm, domain: e.target.value })} placeholder="example.lan" required className="font-mono" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Type</Label>
-              <select
-                className="w-full rounded border bg-background px-2 py-2 text-sm"
-                value={recordForm.type}
-                onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value })}
-              >
+              <select className="w-full rounded border bg-background px-2 py-2 text-sm" value={recordForm.type} onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value })}>
                 {["A", "AAAA", "CNAME", "MX", "TXT", "NS", "PTR"].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
@@ -204,23 +210,11 @@ export default function DNS() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Name</Label>
-              <Input
-                value={recordForm.name}
-                onChange={(e) => setRecordForm({ ...recordForm, name: e.target.value })}
-                placeholder="@ or subdomain"
-                required
-                className="font-mono"
-              />
+              <Input value={recordForm.name} onChange={(e) => setRecordForm({ ...recordForm, name: e.target.value })} placeholder="@ or subdomain" required className="font-mono" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Value (IP / target)</Label>
-              <Input
-                value={recordForm.value}
-                onChange={(e) => setRecordForm({ ...recordForm, value: e.target.value })}
-                placeholder="10.10.10.1"
-                required
-                className="font-mono"
-              />
+              <Input value={recordForm.value} onChange={(e) => setRecordForm({ ...recordForm, value: e.target.value })} placeholder="10.10.10.1" required className="font-mono" />
             </div>
             <div className="col-span-2 flex items-end gap-2 md:col-span-4">
               <Button type="submit" size="sm" disabled={addRecord.isPending}>
@@ -232,43 +226,10 @@ export default function DNS() {
 
           {authLoading ? (
             <div className="py-4 text-center"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          ) : !authRecords.length ? (
+            <p className="py-6 text-center text-muted-foreground">No authoritative records configured</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                  <th className="py-2 pr-4">Domain</th>
-                  <th className="py-2 pr-4">Type</th>
-                  <th className="py-2 pr-4">Name</th>
-                  <th className="py-2 pr-4">Value</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {authRecords.map((r) => (
-                  <tr key={`${r.domain}/${r.type}/${r.name}`} className="border-b last:border-0 hover:bg-muted/40">
-                    <td className="py-2 pr-4 font-mono text-xs">{r.domain}</td>
-                    <td className="py-2 pr-4">
-                      <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">{r.type}</span>
-                    </td>
-                    <td className="py-2 pr-4 font-mono text-xs">{r.name}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">{r.value || "—"}</td>
-                    <td className="py-2">
-                      <ConfirmDialog
-                        trigger={<button className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>}
-                        title="Delete DNS record?"
-                        description={`Remove ${r.type} record "${r.name}" from ${r.domain}?`}
-                        confirmLabel="Delete"
-                        destructive
-                        onConfirm={() => deleteRecord.mutate({ domain: r.domain, type: r.type, name: r.name })}
-                      />
-                    </td>
-                  </tr>
-                ))}
-                {!authRecords.length && (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">No authoritative records configured</td></tr>
-                )}
-              </tbody>
-            </table>
+            <DataGrid<DNSRecord> columnDefs={recordColumnDefs} rowData={authRecords} compact />
           )}
         </CardContent>
       </Card>
