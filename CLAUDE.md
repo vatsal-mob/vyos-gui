@@ -62,8 +62,17 @@ Frontend: http://localhost:3000 | Backend API docs: http://localhost:8000/docs
 - **`src/api/client.ts`** — Axios instance with 401 interceptor (redirects to login)
 - **`src/store/`** — Zustand global state stores
 - **`src/pages/`** — One page component per feature area (14 pages)
+- **`src/components/shared/DataGrid.tsx`** — AG Grid Community wrapper (`domLayout="autoHeight"`, dark/light theme via `useThemeStore`); requires `ModuleRegistry.registerModules([AllCommunityModule])` at module load
+- **`src/components/dashboard/GaugeChart.tsx`** — D3 semi-circle arc gauge (0–100%, green→amber→red), used in SystemStats
+- **`src/components/dashboard/ProtocolDonut.tsx`** — D3 pie/donut chart for protocol distribution, rendered on Dashboard
 - **`src/components/`** — Reusable shadcn/ui + custom components
-- **`vite.config.ts`** — Proxies `/api/*` to backend on port 8000
+- **`vite.config.ts`** — Proxies `/api/*` to backend; `optimizeDeps.include: ["apexcharts", "react-apexcharts"]` required to pre-bundle these CJS packages
+
+### Frontend Key Dependencies (branch: `frontend-revamp`)
+- **ApexCharts** (`apexcharts`, `react-apexcharts`) — replaces Recharts for dashboard area charts; use `type="area"` with `sparkline: { enabled: true }` for interface sparklines
+- **D3.js** (`d3`, `@types/d3`) — gauge and donut charts rendered into SVG refs via `useEffect`
+- **AG Grid Community** (`ag-grid-community@35`, `ag-grid-react`) — replaces HTML tables across all pages; CSS imported in `src/main.tsx`; theme class `ag-theme-quartz-dark` / `ag-theme-quartz` driven by theme store
+- **Important AG Grid pattern**: all `columnDefs` must be wrapped in `useMemo` and inline cell renderer components in `useCallback` — without stable references AG Grid resets the grid on every render instead of updating rows reactively
 
 ### Security Model
 - VyOS credentials are AES-encrypted inside the JWT — never stored on disk
