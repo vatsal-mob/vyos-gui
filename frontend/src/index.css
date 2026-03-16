@@ -28,23 +28,23 @@
   }
 
   .dark {
-    /* Void Precision — deep navy-black + electric cyan */
-    --background: 222 35% 4%;
-    --foreground: 215 22% 86%;
-    --card: 220 28% 7%;
-    --card-foreground: 215 22% 86%;
+    /* Void Precision — midnight slate + electric cyan */
+    --background: 222 28% 9%;
+    --foreground: 215 25% 92%;
+    --card: 220 24% 13%;
+    --card-foreground: 215 25% 92%;
     --primary: 199 95% 52%;
-    --primary-foreground: 222 35% 4%;
-    --secondary: 220 22% 11%;
-    --secondary-foreground: 215 18% 70%;
-    --muted: 220 22% 10%;
-    --muted-foreground: 215 14% 44%;
-    --accent: 220 22% 12%;
-    --accent-foreground: 215 22% 86%;
-    --destructive: 0 68% 58%;
+    --primary-foreground: 222 28% 9%;
+    --secondary: 220 20% 17%;
+    --secondary-foreground: 215 20% 78%;
+    --muted: 220 20% 15%;
+    --muted-foreground: 215 16% 58%;
+    --accent: 220 20% 18%;
+    --accent-foreground: 215 25% 92%;
+    --destructive: 0 68% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 13%;
-    --input: 220 20% 13%;
+    --border: 220 18% 21%;
+    --input: 220 18% 17%;
     --ring: 199 95% 52%;
     --radius: 0.25rem;
     --success: 160 84% 44%;
