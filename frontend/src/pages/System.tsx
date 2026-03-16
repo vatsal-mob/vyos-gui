@@ -13,6 +13,7 @@ import {
   useRestoreConfig,
 } from "../hooks/useVyos";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { APP_VERSION } from "../lib/version";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Loader2, Trash2, Plus, RefreshCw, PowerOff, FileText, Download, Upload } from "lucide-react";
@@ -263,7 +264,7 @@ export default function System() {
             <p className="text-xs text-muted-foreground font-mono mt-0.5">Network Operations Interface</p>
           </div>
           <span className="font-mono text-xs font-medium px-2 py-1 rounded border border-primary/30 bg-primary/8 text-primary">
-            v1.0
+            {APP_VERSION}
           </span>
         </div>
       </Section>
