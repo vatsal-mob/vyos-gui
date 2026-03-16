@@ -60,7 +60,7 @@ export default function IDS() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
+        <h1 className="font-display text-xl font-semibold tracking-tight flex items-center gap-2">
           <ShieldAlert className="h-6 w-6" />
           IDS Alerts
         </h1>

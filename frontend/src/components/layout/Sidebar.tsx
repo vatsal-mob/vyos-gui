@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Waves,
   ShieldCheck,
+  Radio,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import api from "../../api/client";
@@ -55,7 +56,7 @@ const navGroups = [
     items: [
       { to: "/flow", icon: Waves, label: "Flow" },
       { to: "/logs", icon: ScrollText, label: "Logs" },
-      { to: "/diagnostics", icon: Activity, label: "Diagnostics" },
+      { to: "/diagnostics", icon: Radio, label: "Diagnostics" },
       { to: "/audit", icon: ClipboardList, label: "Audit Log" },
     ],
   },
@@ -67,14 +68,6 @@ const navGroups = [
     ],
   },
 ];
-
-const linkClass = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    "flex items-center gap-2.5 mx-2 rounded px-2.5 py-1.5 text-xs font-medium transition-colors",
-    isActive
-      ? "bg-primary/10 text-primary"
-      : "text-muted-foreground hover:bg-accent hover:text-foreground"
-  );
 
 export default function Sidebar() {
   const logout = useAuthStore((s) => s.logout);
@@ -89,45 +82,80 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-52 flex-col border-r bg-card">
-      <div className="flex h-12 items-center border-b px-4">
-        <span className="font-semibold tracking-tight text-primary text-sm">VyOS</span>
-        <span className="ml-1 font-light tracking-tight text-muted-foreground text-sm">GUI</span>
+    <aside className="flex h-full w-56 flex-col bg-card border-r border-border">
+      {/* Logo */}
+      <div className="flex h-12 items-center gap-2 px-4 border-b border-border">
+        <div className="flex items-center justify-center w-6 h-6 bg-primary/10 border border-primary/30 rounded-sm">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 2L6 10L10 2" stroke="hsl(199,95%,52%)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <div className="flex items-baseline gap-0.5">
+          <span className="font-display text-sm font-semibold tracking-tight text-primary">VyOS</span>
+          <span className="font-display text-sm font-light tracking-tight text-muted-foreground/70">GUI</span>
+        </div>
       </div>
-      <nav className="flex-1 overflow-y-auto py-3 space-y-3">
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-2">
+        {navGroups.map((group, gi) => (
+          <div key={group.label} className={cn("px-2", gi > 0 && "mt-1 pt-1 border-t border-border/60")}>
+            <p className="section-label px-2 pt-2 pb-1.5">
               {group.label}
             </p>
-            {group.items.map(({ to, icon: Icon, label }) => (
-              <NavLink key={to} to={to} className={linkClass}>
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                {label}
-              </NavLink>
-            ))}
+            <div className="space-y-0.5">
+              {group.items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    cn(
+                      "nav-link flex items-center gap-2.5 rounded px-2 py-1.5 text-xs font-medium transition-all duration-150",
+                      isActive
+                        ? "nav-item-active bg-primary/8 text-primary"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )
+                  }
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
           </div>
         ))}
 
         {adguardConfigured && (
-          <div>
-            <p className="px-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-              Add-ons
-            </p>
-            <NavLink to="/adguard" className={linkClass}>
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-              AdGuard Home
-            </NavLink>
+          <div className="mt-1 pt-1 border-t border-border/60 px-2">
+            <p className="section-label px-2 pt-2 pb-1.5">Add-ons</p>
+            <div className="space-y-0.5">
+              <NavLink
+                to="/adguard"
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2.5 rounded px-2 py-1.5 text-xs font-medium transition-all duration-150",
+                    isActive
+                      ? "nav-item-active bg-primary/8 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )
+                }
+              >
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                AdGuard Home
+              </NavLink>
+            </div>
           </div>
         )}
       </nav>
-      <div className="border-t p-3">
+
+      {/* Footer */}
+      <div className="border-t border-border p-2">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-2.5 rounded px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-all duration-150"
         >
-          <LogOut className="h-3.5 w-3.5" />
-          Logout
+          <LogOut className="h-3.5 w-3.5 shrink-0" />
+          Sign out
         </button>
       </div>
     </aside>

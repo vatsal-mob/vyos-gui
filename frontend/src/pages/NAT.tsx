@@ -147,7 +147,7 @@ function NATTable({ type }: { type: "source" | "destination" }) {
 export default function NAT() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">NAT</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">NAT</h1>
       <NATTable type="source" />
       <NATTable type="destination" />
     </div>

@@ -95,7 +95,7 @@ export default function System() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">System</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">System</h1>
 
       {/* Hostname */}
       <Section title="Hostname">

@@ -187,7 +187,7 @@ export default function VPN() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">VPN</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">VPN</h1>
 
       {(!interfaces || interfaces.length === 0) && (
         <Card>

@@ -23,7 +23,7 @@ export default function Logs() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Log Viewer</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">Log Viewer</h1>
 
       <Card>
         <CardHeader>

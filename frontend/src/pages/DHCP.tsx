@@ -62,7 +62,7 @@ export default function DHCP() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">DHCP</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">DHCP</h1>
 
       {/* Pools */}
       <Card>

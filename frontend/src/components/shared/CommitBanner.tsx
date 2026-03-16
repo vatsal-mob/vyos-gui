@@ -1,7 +1,7 @@
 import { usePendingStore } from "../../store/pending";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../api/client";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { GitCommit, X, Loader2, Zap } from "lucide-react";
 
 export default function CommitBanner() {
   const { commands, clear } = usePendingStore();
@@ -21,33 +21,45 @@ export default function CommitBanner() {
   if (commands.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-amber-500/30 bg-card/95 backdrop-blur-sm px-5 py-2.5 shadow-2xl">
-      <div className="flex items-center gap-2">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-        <span className="text-xs font-medium text-amber-400">
-          {commands.length} uncommitted change{commands.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => clear()}
-          className="flex items-center gap-1.5 rounded border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-        >
-          <XCircle className="h-3.5 w-3.5" />
-          Discard
-        </button>
-        <button
-          onClick={() => commitMutation.mutate()}
-          disabled={commitMutation.isPending}
-          className="flex items-center gap-1.5 rounded bg-amber-500 px-3 py-1 text-xs font-medium text-black hover:bg-amber-400 disabled:opacity-60 transition-colors"
-        >
-          {commitMutation.isPending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <CheckCircle className="h-3.5 w-3.5" />
-          )}
-          Commit
-        </button>
+    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-warning/25 bg-card/96 backdrop-blur-md">
+      {/* Amber accent line at top */}
+      <div className="h-px bg-gradient-to-r from-transparent via-warning/50 to-transparent" />
+
+      <div className="flex items-center justify-between px-5 py-2.5">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
+            <span className="text-xs font-mono font-medium text-warning">
+              {commands.length} pending {commands.length === 1 ? "change" : "changes"}
+            </span>
+          </div>
+          <div className="h-3.5 w-px bg-border" />
+          <span className="text-2xs font-mono text-muted-foreground">
+            Not committed to running config
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => clear()}
+            className="flex items-center gap-1.5 rounded border border-border px-3 py-1 text-xs font-medium text-muted-foreground hover:border-destructive/40 hover:text-destructive transition-all duration-150"
+          >
+            <X className="h-3 w-3" />
+            Discard
+          </button>
+          <button
+            onClick={() => commitMutation.mutate()}
+            disabled={commitMutation.isPending}
+            className="flex items-center gap-1.5 rounded bg-warning px-3 py-1 text-xs font-display font-semibold text-black hover:bg-warning/90 disabled:opacity-60 transition-all duration-150 uppercase tracking-wide"
+          >
+            {commitMutation.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Zap className="h-3 w-3" />
+            )}
+            {commitMutation.isPending ? "Committing..." : "Commit"}
+          </button>
+        </div>
       </div>
     </div>
   );

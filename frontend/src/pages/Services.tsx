@@ -379,7 +379,7 @@ export default function Services() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Service Manager</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">Service Manager</h1>
 
       {/* Active services toggle grid */}
       <div>

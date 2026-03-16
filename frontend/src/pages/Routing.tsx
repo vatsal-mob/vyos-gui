@@ -40,7 +40,7 @@ export default function Routing() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Routing</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">Routing</h1>
 
       {/* Static routes */}
       <Card>

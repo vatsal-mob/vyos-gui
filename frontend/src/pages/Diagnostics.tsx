@@ -108,7 +108,7 @@ export default function Diagnostics() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Diagnostics</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">Diagnostics</h1>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <ToolCard

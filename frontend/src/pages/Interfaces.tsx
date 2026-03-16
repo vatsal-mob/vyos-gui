@@ -9,7 +9,7 @@ export default function Interfaces() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold tracking-tight">Interfaces</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">Interfaces</h1>
       {isLoading && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…

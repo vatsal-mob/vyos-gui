@@ -19,7 +19,7 @@ export default function Connections() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Connection Tracker</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight">Connection Tracker</h1>
 
       <Card>
         <CardHeader>

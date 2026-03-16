@@ -6,13 +6,23 @@ import FirewallFeed from "../components/dashboard/FirewallFeed";
 export default function Dashboard() {
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+      <div className="flex items-baseline gap-3">
+        <h1 className="font-display text-xl font-semibold tracking-tight">Dashboard</h1>
+        <span className="text-2xs font-mono text-muted-foreground/50 uppercase tracking-wider">
+          System Overview
+        </span>
+      </div>
+
       <SystemStats />
+
       <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wider">Interface Traffic</h2>
+        <div className="flex items-baseline gap-2 mb-3">
+          <h2 className="section-label">Interface Traffic</h2>
+        </div>
         <InterfaceTraffic />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <TopTalkers />
         <FirewallFeed />
       </div>

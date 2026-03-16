@@ -5,30 +5,23 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-const dotColor: Record<string, string> = {
-  up: "bg-emerald-400",
-  down: "bg-red-500",
-  unknown: "bg-muted-foreground",
-};
-
-const textColor: Record<string, string> = {
-  up: "text-emerald-400",
-  down: "text-red-500",
-  unknown: "text-muted-foreground",
+const styles: Record<string, { dot: string; text: string }> = {
+  up:      { dot: "bg-success",          text: "text-success" },
+  down:    { dot: "bg-destructive",      text: "text-destructive" },
+  unknown: { dot: "bg-muted-foreground", text: "text-muted-foreground" },
 };
 
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
-  const dot = dotColor[status] ?? dotColor.unknown;
-  const text = textColor[status] ?? textColor.unknown;
+  const s = styles[status] ?? styles.unknown;
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs font-medium font-mono",
-        text,
+        "inline-flex items-center gap-1.5 text-2xs font-mono font-medium",
+        s.text,
         className
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
+      <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)} />
       {status}
     </span>
   );

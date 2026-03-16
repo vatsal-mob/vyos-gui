@@ -109,35 +109,37 @@ export default function CommandPalette() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Content className="fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded border bg-card shadow-2xl shadow-black/50">
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-[18%] z-50 w-full max-w-md -translate-x-1/2 rounded border border-border bg-card shadow-2xl shadow-black/60 overflow-hidden">
           <Dialog.Title className="sr-only">Command Palette</Dialog.Title>
-          <div className="flex items-center border-b px-4 py-3 gap-3">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          {/* Top accent */}
+          <div className="h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          <div className="flex items-center border-b border-border px-4 py-2.5 gap-3">
+            <Search className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
             <input
               autoFocus
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent text-sm font-mono outline-none placeholder:text-muted-foreground/40"
               placeholder="Search pages, interfaces, routes…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground/60">
               ESC
             </kbd>
           </div>
-          <ul className="max-h-72 overflow-y-auto py-2">
+          <ul className="max-h-64 overflow-y-auto py-1">
             {filtered.length === 0 && (
-              <li className="px-4 py-3 text-sm text-muted-foreground">No results found.</li>
+              <li className="px-4 py-3 text-xs font-mono text-muted-foreground">No results found.</li>
             )}
             {filtered.map((item) => (
               <li key={item.id}>
                 <button
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                  className="flex w-full items-center gap-3 px-4 py-2 hover:bg-accent transition-colors text-left"
                   onClick={() => handleSelect(item)}
                 >
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs font-mono font-medium text-foreground">{item.label}</span>
                   {item.sublabel && (
-                    <span className="text-xs text-muted-foreground">{item.sublabel}</span>
+                    <span className="text-2xs font-mono text-muted-foreground">{item.sublabel}</span>
                   )}
                 </button>
               </li>

@@ -1,7 +1,7 @@
 import { useReachable } from "../../hooks/useVyos";
 import { useAuthStore } from "../../store/auth";
 import { useThemeStore } from "../../store/theme";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, User } from "lucide-react";
 
 export default function Topbar() {
   const username = useAuthStore((s) => s.username);
@@ -10,32 +10,51 @@ export default function Topbar() {
   const { theme, toggle } = useThemeStore();
 
   return (
-    <header className="flex h-11 items-center justify-between border-b bg-card px-5">
+    <header className="flex h-12 items-center justify-between border-b border-border bg-card px-5 shrink-0">
+      {/* Left side — placeholder for breadcrumbs */}
       <div />
-      <div className="flex items-center gap-4">
+
+      {/* Right side — status + user + theme */}
+      <div className="flex items-center gap-3">
+        {/* Router connection status */}
         {reachable !== null && (
-          <span
-            className={`flex items-center gap-1.5 text-xs font-medium ${
+          <div
+            className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-2xs font-mono font-medium border ${
               reachable
-                ? "text-emerald-500 dark:text-emerald-400"
-                : "text-red-500"
+                ? "text-success border-success/20 bg-success/5"
+                : "text-destructive border-destructive/20 bg-destructive/5"
             }`}
           >
-            {reachable ? (
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-            ) : (
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
-            )}
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${
+                reachable ? "bg-success status-dot-live" : "bg-destructive"
+              }`}
+            />
             {reachable ? "Connected" : "Unreachable"}
-          </span>
+          </div>
         )}
-        <span className="text-xs text-muted-foreground font-mono">{username}</span>
+
+        {/* Username */}
+        {username && (
+          <div className="flex items-center gap-1.5 text-2xs font-mono text-muted-foreground">
+            <User className="h-3 w-3" />
+            {username}
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="h-4 w-px bg-border" />
+
+        {/* Theme toggle */}
         <button
           onClick={toggle}
-          className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          className="flex items-center justify-center rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         >
-          {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          {theme === "dark"
+            ? <Sun className="h-3.5 w-3.5" />
+            : <Moon className="h-3.5 w-3.5" />
+          }
         </button>
       </div>
     </header>
