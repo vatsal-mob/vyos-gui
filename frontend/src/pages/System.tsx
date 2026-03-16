@@ -255,6 +255,19 @@ export default function System() {
         )}
       </Section>
 
+      {/* About */}
+      <Section title="About">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">VyOS GUI</p>
+            <p className="text-xs text-muted-foreground font-mono mt-0.5">Network Operations Interface</p>
+          </div>
+          <span className="font-mono text-xs font-medium px-2 py-1 rounded border border-primary/30 bg-primary/8 text-primary">
+            v1.0
+          </span>
+        </div>
+      </Section>
+
       {/* Reboot / Poweroff */}
       <Section title="Power">
         <div className="flex gap-3">
