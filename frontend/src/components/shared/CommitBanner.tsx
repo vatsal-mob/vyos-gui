@@ -1,7 +1,7 @@
 import { usePendingStore } from "../../store/pending";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../api/client";
-import { GitCommit, X, Loader2, Zap } from "lucide-react";
+import { X, Loader2, Zap } from "lucide-react";
 
 export default function CommitBanner() {
   const { commands, clear } = usePendingStore();
