@@ -1,20 +1,24 @@
 """Integration-style tests for API routers using FastAPI TestClient."""
+import os
+
+# Must set env vars BEFORE any app imports trigger Settings() validation
+os.environ["SECRET_KEY"] = "a" * 64
+os.environ["GUI_USERNAME"] = "admin"
+os.environ["GUI_PASSWORD_HASH"] = "$pbkdf2-sha256$260000$dummysaltfortesting00000000000000$dummyhashfortestingpurposesonly000000000000="
+os.environ["VYOS_HOST"] = "10.10.10.1"
+os.environ["VYOS_SSH_USER"] = "vyos"
+os.environ["VYOS_SSH_PASSWORD"] = "vyos"
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from core.security import hash_password, create_access_token, encrypt_vyos_creds
+from core.config import settings
 from vyos.models import VyOSCredentials
 
-
-# Patch settings before importing app
-import os
-os.environ.setdefault("SECRET_KEY", "a" * 64)
-os.environ.setdefault("GUI_USERNAME", "admin")
-os.environ.setdefault("GUI_PASSWORD_HASH", hash_password("testpass"))
-os.environ.setdefault("VYOS_HOST", "10.10.10.1")
-os.environ.setdefault("VYOS_SSH_USER", "vyos")
-os.environ.setdefault("VYOS_SSH_PASSWORD", "vyos")
+# settings is a singleton already loaded — patch it directly with a real hash
+settings.gui_password_hash = hash_password("testpass")
 
 
 @pytest.fixture(scope="module")
@@ -29,13 +33,17 @@ def client(app):
 
 
 @pytest.fixture(scope="module")
-def session_cookie(app):
+def session_cookie():
     """Craft a valid session cookie with encrypted VyOS creds."""
     creds = VyOSCredentials(host="10.10.10.1", ssh_user="vyos", ssh_password="vyos")
     encrypted = encrypt_vyos_creds(creds.model_dump())
     token = create_access_token({"sub": "admin", "vyos_creds": encrypted})
     return {"session": token}
 
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
 
 def test_healthz(client):
     resp = client.get("/healthz")
@@ -66,30 +74,13 @@ def test_logout(client, session_cookie):
     assert resp.status_code == 200
 
 
+# ---------------------------------------------------------------------------
+# Auth guards
+# ---------------------------------------------------------------------------
+
 def test_system_info_requires_auth(client):
     resp = client.get("/api/system/info")
     assert resp.status_code == 401
-
-
-def test_system_info_with_session(client, session_cookie):
-    mock_client = MagicMock()
-    mock_client.get_system_info = AsyncMock(return_value={
-        "hostname": "vyos-router",
-        "version": "VyOS 1.4",
-        "uptime": "up 2 hours",
-        "cpu_percent": 5.0,
-        "memory_total": 1073741824,
-        "memory_used": 268435456,
-        "memory_percent": 25.0,
-        "load_average": [0.1, 0.2, 0.3],
-        "ntp_servers": ["pool.ntp.org"],
-    })
-
-    with patch("core.dependencies.VyOSClient", return_value=mock_client):
-        resp = client.get("/api/system/info", cookies=session_cookie)
-
-    # May succeed or fail depending on dep injection — just check auth passed
-    assert resp.status_code in (200, 500)
 
 
 def test_interfaces_requires_auth(client):
@@ -120,3 +111,129 @@ def test_dhcp_pools_requires_auth(client):
 def test_dns_forwarding_requires_auth(client):
     resp = client.get("/api/dns/forwarding")
     assert resp.status_code == 401
+
+
+def test_services_requires_auth(client):
+    resp = client.get("/api/services/")
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Services — bool(raw) fix
+# ---------------------------------------------------------------------------
+
+def _make_mock_client(retrieve_returns):
+    """Build a mock VyOSClient whose retrieve() returns the given values in order."""
+    mock = MagicMock()
+    mock.retrieve = AsyncMock(side_effect=retrieve_returns)
+    return mock
+
+
+def test_services_list_ssh_empty_string_means_disabled(client, session_cookie):
+    """SSH retrieve() returns '' for missing paths — must be treated as disabled."""
+    # All services return empty string (SSH path not found)
+    from routers.services import SERVICES
+    n = len(SERVICES)
+    mock_client = _make_mock_client([""] * n)
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.get("/api/services/", cookies=session_cookie)
+
+    assert resp.status_code == 200
+    services = resp.json()
+    assert all(s["enabled"] is False for s in services), \
+        "Empty string from SSH must mean disabled, not enabled"
+
+
+def test_services_list_ssh_nonempty_string_means_enabled(client, session_cookie):
+    """SSH retrieve() returns config text for existing paths — must be treated as enabled."""
+    from routers.services import SERVICES
+    n = len(SERVICES)
+    mock_client = _make_mock_client(["set service ssh"] * n)
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.get("/api/services/", cookies=session_cookie)
+
+    assert resp.status_code == 200
+    services = resp.json()
+    assert all(s["enabled"] is True for s in services)
+
+
+def test_services_list_rest_none_means_disabled(client, session_cookie):
+    """REST retrieve() returns None for non-existent config path — must be disabled."""
+    from routers.services import SERVICES
+    n = len(SERVICES)
+    mock_client = _make_mock_client([None] * n)
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.get("/api/services/", cookies=session_cookie)
+
+    assert resp.status_code == 200
+    services = resp.json()
+    assert all(s["enabled"] is False for s in services)
+
+
+def test_services_list_rest_dict_means_enabled(client, session_cookie):
+    """REST retrieve() returns a dict when path exists — must be enabled."""
+    from routers.services import SERVICES
+    n = len(SERVICES)
+    mock_client = _make_mock_client([{"port": 22}] * n)
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.get("/api/services/", cookies=session_cookie)
+
+    assert resp.status_code == 200
+    services = resp.json()
+    assert all(s["enabled"] is True for s in services)
+
+
+def test_enable_service_calls_configure(client, session_cookie):
+    """POST /services/ssh/enable must call configure with a set op."""
+    mock_client = MagicMock()
+    mock_client.configure = AsyncMock(return_value=True)
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.post("/api/services/ssh/enable", cookies=session_cookie)
+
+    assert resp.status_code == 200
+    assert resp.json()["enabled"] is True
+    mock_client.configure.assert_called_once()
+    cmd = mock_client.configure.call_args[0][0][0]
+    assert cmd["op"] == "set"
+    assert cmd["path"] == ["service", "ssh"]
+
+
+def test_disable_service_calls_configure(client, session_cookie):
+    """POST /services/ssh/disable must call configure with a delete op."""
+    mock_client = MagicMock()
+    mock_client.configure = AsyncMock(return_value=True)
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.post("/api/services/ssh/disable", cookies=session_cookie)
+
+    assert resp.status_code == 200
+    assert resp.json()["enabled"] is False
+    cmd = mock_client.configure.call_args[0][0][0]
+    assert cmd["op"] == "delete"
+    assert cmd["path"] == ["service", "ssh"]
+
+
+def test_enable_unknown_service_returns_404(client, session_cookie):
+    resp = client.post("/api/services/nonexistent-svc/enable", cookies=session_cookie)
+    assert resp.status_code == 404
+
+
+def test_disable_unknown_service_returns_404(client, session_cookie):
+    resp = client.post("/api/services/nonexistent-svc/disable", cookies=session_cookie)
+    assert resp.status_code == 404
+
+
+def test_enable_service_configure_failure_returns_500(client, session_cookie):
+    """If configure raises, endpoint must return 500."""
+    mock_client = MagicMock()
+    mock_client.configure = AsyncMock(side_effect=Exception("SSH timeout"))
+
+    with patch("core.dependencies.VyOSClient", return_value=mock_client):
+        resp = client.post("/api/services/ssh/enable", cookies=session_cookie)
+
+    assert resp.status_code == 500
