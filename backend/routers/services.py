@@ -40,8 +40,8 @@ async def list_services(client: Annotated[VyOSClient, Depends(get_vyos_client)])
     for name, path in SERVICES.items():
         try:
             raw = await client.retrieve(path)
-            # raw is not None means the config node exists → service enabled
-            enabled = raw is not None
+            # SSH returns "" for missing paths; REST returns None — bool() handles both
+            enabled = bool(raw)
         except Exception:
             enabled = False
         results.append({"name": name, "enabled": enabled})
