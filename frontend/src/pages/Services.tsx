@@ -34,9 +34,9 @@ interface Plugin {
 }
 
 const METHOD_STYLES: Record<InstallMethod, string> = {
-  native:    "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  container: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
-  apt:       "bg-orange-500/15 text-orange-700 dark:text-orange-400",
+  native:    "bg-primary/10 text-primary border border-primary/20",
+  container: "bg-success/10 text-success border border-success/20",
+  apt:       "bg-warning/10 text-warning border border-warning/20",
 };
 
 const METHOD_LABELS: Record<InstallMethod, string> = {
@@ -383,7 +383,7 @@ export default function Services() {
 
       {/* Active services toggle grid */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">Active Services</h2>
+        <h2 className="section-label mb-3">Active Services</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading && (
             <div className="col-span-full flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -405,7 +405,7 @@ export default function Services() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <span className={`text-sm font-medium ${svc.enabled ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-mono font-medium ${svc.enabled ? "text-success" : "text-muted-foreground"}`}>
                     {svc.enabled ? "Enabled" : "Disabled"}
                   </span>
                   <button
@@ -413,16 +413,16 @@ export default function Services() {
                     aria-checked={svc.enabled}
                     disabled={isPendingFor(svc.name)}
                     onClick={() => handleToggle(svc)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${
-                      svc.enabled ? "bg-green-500" : "bg-muted-foreground/30"
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${
+                      svc.enabled ? "bg-success" : "bg-muted-foreground/30"
                     }`}
                   >
                     {isPendingFor(svc.name) ? (
                       <Loader2 className="h-3 w-3 animate-spin text-white absolute left-1/2 -translate-x-1/2" />
                     ) : (
                       <span
-                        className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-                          svc.enabled ? "translate-x-6" : "translate-x-1"
+                        className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+                          svc.enabled ? "translate-x-5" : "translate-x-1"
                         }`}
                       />
                     )}
@@ -434,7 +434,7 @@ export default function Services() {
           ))}
 
           {/* AdGuard Home — container-based service */}
-          <Card className={adguardStatus?.configured ? "border-green-500/30" : ""}>
+          <Card className={adguardStatus?.configured ? "border-success/30" : ""}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium flex items-center gap-1.5">
@@ -446,7 +446,7 @@ export default function Services() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className={`text-sm font-medium ${adguardStatus?.configured ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                <span className={`text-xs font-mono font-medium ${adguardStatus?.configured ? "text-success" : "text-muted-foreground"}`}>
                   {adguardStatus?.configured
                     ? adguardStatus?.running ? "Running" : "Configured"
                     : "Disabled"}
@@ -454,8 +454,8 @@ export default function Services() {
                 {adguardStatus?.configured ? (
                   <ConfirmDialog
                     trigger={
-                      <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-green-500 transition-colors">
-                        <span className="inline-block h-4 w-4 rounded-full bg-white shadow-sm translate-x-6" />
+                      <button className="relative inline-flex h-5 w-9 items-center rounded-full bg-success transition-colors">
+                        <span className="inline-block h-3 w-3 rounded-full bg-white shadow-sm translate-x-5" />
                       </button>
                     }
                     title="Disable AdGuard Home?"
@@ -470,11 +470,11 @@ export default function Services() {
                     aria-checked={false}
                     disabled={enableAdGuard.isPending}
                     onClick={() => enableAdGuard.mutate()}
-                    className="relative inline-flex h-6 w-11 items-center rounded-full bg-muted-foreground/30 transition-colors disabled:opacity-50"
+                    className="relative inline-flex h-5 w-9 items-center rounded-full bg-muted-foreground/30 transition-colors disabled:opacity-50"
                   >
                     {enableAdGuard.isPending
                       ? <Loader2 className="h-3 w-3 animate-spin text-white absolute left-1/2 -translate-x-1/2" />
-                      : <span className="inline-block h-4 w-4 rounded-full bg-white shadow-sm translate-x-1" />
+                      : <span className="inline-block h-3 w-3 rounded-full bg-white shadow-sm translate-x-1" />
                     }
                   </button>
                 )}
@@ -496,25 +496,23 @@ export default function Services() {
       {/* Plugin catalog */}
       <div>
         <div className="mb-4 flex items-center gap-3">
-          <Package className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Homelab Plugin Catalog
-          </h2>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+          <h2 className="section-label">Homelab Plugin Catalog</h2>
+          <span className="rounded border border-border bg-muted px-2 py-0.5 text-2xs font-mono text-muted-foreground">
             {PLUGINS.length} plugins · read-only
           </span>
         </div>
 
-        {/* Category filter pills */}
-        <div className="mb-4 flex flex-wrap gap-2">
+        {/* Category filter tabs */}
+        <div className="mb-4 flex flex-wrap gap-1.5">
           {["All", ...CATEGORIES].map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded border px-2.5 py-1 text-2xs font-mono font-medium transition-colors ${
                 activeCategory === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-primary/10 border-primary/40 text-primary"
+                  : "border-border bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               {cat}
