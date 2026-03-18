@@ -8,7 +8,8 @@ from typing import Any
 import hashlib
 import hmac
 from cryptography.fernet import Fernet
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 
 from .config import settings
 

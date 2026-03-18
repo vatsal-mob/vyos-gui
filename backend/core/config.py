@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # App
     cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:5173"])
+    cookie_secure: bool = Field(default=False, description="Set True when serving over HTTPS")
 
 
 settings = Settings()

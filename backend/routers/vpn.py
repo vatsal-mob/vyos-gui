@@ -52,7 +52,7 @@ def _parse_wg_interfaces(raw: dict) -> list[WireGuardInterface]:
             peers.append(WireGuardPeer(
                 name=peer_name,
                 public_key=peer_data.get("public-key", ""),
-                preshared_key=peer_data.get("preshared-key", ""),
+                preshared_key="**REDACTED**" if peer_data.get("preshared-key") else "",
                 allowed_ips=allowed,
                 endpoint=peer_data.get("address", ""),
                 persistent_keepalive=int(peer_data.get("persistent-keepalive", 0)),
@@ -63,7 +63,7 @@ def _parse_wg_interfaces(raw: dict) -> list[WireGuardInterface]:
             description=iface_data.get("description", ""),
             address=address,
             port=int(iface_data.get("port", 51820)),
-            private_key=iface_data.get("private-key", ""),
+            private_key="**REDACTED**" if iface_data.get("private-key") else "",
             peers=peers,
         ))
     return interfaces

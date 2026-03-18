@@ -4,7 +4,7 @@ httpx==0.28.1
 paramiko==3.5.0
 pydantic==2.10.3
 pydantic-settings==2.7.0
-python-jose[cryptography]==3.3.0
+PyJWT>=2.8.0
 cryptography==44.0.0
 python-multipart==0.0.20
 pytest==8.3.4

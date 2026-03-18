@@ -1,6 +1,6 @@
 """FastAPI dependency injection."""
 from fastapi import Cookie, HTTPException, status
-from jose import JWTError
+from jwt.exceptions import InvalidTokenError as JWTError
 
 from core.security import decrypt_vyos_creds, decode_access_token
 from vyos.client import VyOSClient

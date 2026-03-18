@@ -54,7 +54,7 @@ async def login(req: LoginRequest, response: Response):
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=False,  # set True in production with HTTPS
+        secure=settings.cookie_secure,
         samesite="lax",
         max_age=settings.access_token_expire_minutes * 60,
     )
