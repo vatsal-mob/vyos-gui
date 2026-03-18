@@ -1,4 +1,5 @@
 """Service status and toggle endpoints."""
+import asyncio
 import logging
 from typing import Annotated
 
@@ -36,16 +37,15 @@ SERVICES: dict[str, list[str]] = {
 @router.get("/")
 async def list_services(client: Annotated[VyOSClient, Depends(get_vyos_client)]):
     """Return status of all managed services."""
-    results = []
-    for name, path in SERVICES.items():
+    async def check(name: str, path: list[str]) -> dict:
         try:
             raw = await client.retrieve(path)
             # SSH returns "" for missing paths; REST returns None — bool() handles both
-            enabled = bool(raw)
+            return {"name": name, "enabled": bool(raw)}
         except Exception:
-            enabled = False
-        results.append({"name": name, "enabled": enabled})
-    return results
+            return {"name": name, "enabled": False}
+
+    return await asyncio.gather(*[check(name, path) for name, path in SERVICES.items()])
 
 
 @router.post("/{service}/enable")

@@ -263,7 +263,7 @@ export default function System() {
             <p className="text-sm font-medium">VyOS GUI</p>
             <p className="text-xs text-muted-foreground font-mono mt-0.5">Network Operations Interface</p>
           </div>
-          <span className="font-mono text-xs font-medium px-2 py-1 rounded border border-primary/30 bg-primary/8 text-primary">
+          <span className="font-mono text-xs font-medium px-2 py-1 rounded border border-primary/30 bg-primary/10 text-primary">
             {APP_VERSION}
           </span>
         </div>

@@ -279,6 +279,31 @@ const CATEGORIES = [...new Set(PLUGINS.map((p) => p.category))];
 
 // ---------------------------------------------------------------------------
 
+function ToggleSwitch({ checked, loading, disabled, onClick }: {
+  checked: boolean;
+  loading?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={onClick}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${
+        checked ? "bg-success" : "bg-muted-foreground/30"
+      }`}
+    >
+      {loading ? (
+        <Loader2 className="h-3 w-3 animate-spin text-white absolute left-1/2 -translate-x-1/2" />
+      ) : (
+        <span className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-1"}`} />
+      )}
+    </button>
+  );
+}
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
@@ -408,25 +433,12 @@ export default function Services() {
                   <span className={`text-xs font-mono font-medium ${svc.enabled ? "text-success" : "text-muted-foreground"}`}>
                     {svc.enabled ? "Enabled" : "Disabled"}
                   </span>
-                  <button
-                    role="switch"
-                    aria-checked={svc.enabled}
+                  <ToggleSwitch
+                    checked={svc.enabled}
+                    loading={isPendingFor(svc.name)}
                     disabled={isPendingFor(svc.name)}
                     onClick={() => handleToggle(svc)}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 ${
-                      svc.enabled ? "bg-success" : "bg-muted-foreground/30"
-                    }`}
-                  >
-                    {isPendingFor(svc.name) ? (
-                      <Loader2 className="h-3 w-3 animate-spin text-white absolute left-1/2 -translate-x-1/2" />
-                    ) : (
-                      <span
-                        className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-                          svc.enabled ? "translate-x-5" : "translate-x-1"
-                        }`}
-                      />
-                    )}
-                  </button>
+                  />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground font-mono">{svc.name}</p>
               </CardContent>
@@ -453,11 +465,7 @@ export default function Services() {
                 </span>
                 {adguardStatus?.configured ? (
                   <ConfirmDialog
-                    trigger={
-                      <button className="relative inline-flex h-5 w-9 items-center rounded-full bg-success transition-colors">
-                        <span className="inline-block h-3 w-3 rounded-full bg-white shadow-sm translate-x-5" />
-                      </button>
-                    }
+                    trigger={<ToggleSwitch checked={true} />}
                     title="Disable AdGuard Home?"
                     description="This removes the AdGuard container configuration from VyOS. The container will stop."
                     confirmLabel="Disable"
@@ -465,18 +473,12 @@ export default function Services() {
                     onConfirm={() => disableAdGuard.mutate()}
                   />
                 ) : (
-                  <button
-                    role="switch"
-                    aria-checked={false}
+                  <ToggleSwitch
+                    checked={false}
+                    loading={enableAdGuard.isPending}
                     disabled={enableAdGuard.isPending}
                     onClick={() => enableAdGuard.mutate()}
-                    className="relative inline-flex h-5 w-9 items-center rounded-full bg-muted-foreground/30 transition-colors disabled:opacity-50"
-                  >
-                    {enableAdGuard.isPending
-                      ? <Loader2 className="h-3 w-3 animate-spin text-white absolute left-1/2 -translate-x-1/2" />
-                      : <span className="inline-block h-3 w-3 rounded-full bg-white shadow-sm translate-x-1" />
-                    }
-                  </button>
+                  />
                 )}
               </div>
               <p className="text-xs text-muted-foreground font-mono">container · adguard</p>
