@@ -8,6 +8,7 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ghcr.io/vatsal-mob/vyos-gui-backend
   FRONTEND_IMAGE: ghcr.io/vatsal-mob/vyos-gui-frontend
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-push:
