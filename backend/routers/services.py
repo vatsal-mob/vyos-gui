@@ -11,10 +11,9 @@ from vyos.client import VyOSClient
 router = APIRouter(prefix="/api/services", tags=["services"])
 logger = logging.getLogger(__name__)
 
-# Service name -> config path
+# Service name -> config path (only paths confirmed valid in VyOS schema)
 SERVICES: dict[str, list[str]] = {
     "ssh":              ["service", "ssh"],
-    "telnet":           ["service", "telnet"],
     "dhcp-server":      ["service", "dhcp-server"],
     "dhcpv6-server":    ["service", "dhcpv6-server"],
     "dns-forwarding":   ["service", "dns", "forwarding"],
@@ -29,8 +28,8 @@ SERVICES: dict[str, list[str]] = {
     "tftp-server":      ["service", "tftp-server"],
     "pppoe-server":     ["service", "pppoe-server"],
     "ipoe-server":      ["service", "ipoe-server"],
-    "ids":              ["service", "ids"],
     "stunnel":          ["service", "stunnel"],
+    "suricata":         ["service", "suricata"],
 }
 
 
