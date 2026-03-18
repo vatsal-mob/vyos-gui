@@ -12,25 +12,20 @@ router = APIRouter(prefix="/api/services", tags=["services"])
 logger = logging.getLogger(__name__)
 
 # Service name -> config path
+# Only paths that return HTTP 200 from this VyOS instance's REST API.
+# Paths returning 400 (dhcpv6-server, conntrack-sync, router-advert, tftp-server,
+# ipoe-server, mdns-repeater, stunnel, telnet, ids) are excluded.
 SERVICES: dict[str, list[str]] = {
     "ssh":              ["service", "ssh"],
-    "telnet":           ["service", "telnet"],
     "dhcp-server":      ["service", "dhcp-server"],
-    "dhcpv6-server":    ["service", "dhcpv6-server"],
     "dns-forwarding":   ["service", "dns", "forwarding"],
     "http-api":         ["service", "https", "api"],
     "ntp":              ["service", "ntp"],
     "snmp":             ["service", "snmp"],
     "lldp":             ["service", "lldp"],
-    "mdns-repeater":    ["service", "mdns", "repeater"],
     "webproxy":         ["service", "webproxy"],
-    "conntrack-sync":   ["service", "conntrack-sync"],
-    "router-advert":    ["service", "router-advert"],
-    "tftp-server":      ["service", "tftp-server"],
     "pppoe-server":     ["service", "pppoe-server"],
-    "ipoe-server":      ["service", "ipoe-server"],
-    "ids":              ["service", "ids"],
-    "stunnel":          ["service", "stunnel"],
+    "suricata":         ["service", "suricata"],
 }
 
 

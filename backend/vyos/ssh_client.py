@@ -141,7 +141,7 @@ class VyOSSSHClient:
             full_output = "".join(output_parts)
             logger.info("Configure output: %s", full_output[:500])
 
-            if "error" in full_output.lower() or "invalid" in full_output.lower():
+            if any(kw in full_output.lower() for kw in ("error", "invalid", "not valid")):
                 raise SSHClientError(f"Configure error: {full_output[:300]}")
             return True
         except SSHClientError:

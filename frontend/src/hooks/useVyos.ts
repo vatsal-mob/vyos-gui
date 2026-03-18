@@ -532,7 +532,15 @@ export function useSuricataAlerts(lines = 200) {
   return useQuery({
     queryKey: ["ids", "alerts", lines],
     queryFn: () => api.get("/ids/alerts", { params: { lines } }).then((r) => r.data),
-    refetchInterval: 15000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useIDSSummary() {
+  return useQuery({
+    queryKey: ["ids", "summary"],
+    queryFn: () => api.get("/ids/summary").then((r) => r.data),
+    refetchOnWindowFocus: false,
   });
 }
 

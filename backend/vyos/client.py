@@ -33,8 +33,10 @@ class VyOSClient:
         if self._rest:
             try:
                 resp = await self._rest.show_config(path)
-                if resp.success:
-                    return resp.data
+                # Return data for both success:true (dict) and success:false (None =
+                # path exists in schema but not configured). Only fall back to SSH on
+                # exceptions (connection error, 400, etc.).
+                return resp.data
             except RESTClientError as e:
                 logger.warning("REST retrieve failed, falling back to SSH: %s", e)
         return await self._run_ssh(self._ssh.retrieve, path)

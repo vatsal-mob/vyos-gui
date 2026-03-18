@@ -43,6 +43,32 @@ def test_configure_rejects_unknown_op(creds):
 
 
 @patch("vyos.ssh_client.paramiko.SSHClient")
+def test_configure_raises_on_not_valid_output(mock_ssh_class, creds):
+    """Configure must raise SSHClientError when VyOS outputs 'is not valid'."""
+    clear_pool()
+    mock_instance = MagicMock()
+    mock_instance.get_transport.return_value = MagicMock(is_active=lambda: True)
+    mock_ssh_class.return_value = mock_instance
+
+    channel = MagicMock()
+    # configure() calls recv_ready once per line (5 lines) then once more in the
+    # final while loop — return False for each in-loop call, then True+False for
+    # the final while so the error text is captured there.
+    channel.recv_ready.side_effect = [False] * 5 + [True, False]
+    channel.recv.return_value = b"Configuration path: service [telnet] is not valid\n"
+    mock_instance.invoke_shell.return_value = channel
+
+    from vyos.ssh_client import _pool
+    _pool[(creds.host, creds.port, creds.ssh_user)] = mock_instance
+
+    client = VyOSSSHClient(creds)
+    with pytest.raises(SSHClientError, match="Configure error"):
+        client.configure([{"op": "set", "path": ["service", "telnet"]}])
+
+    clear_pool()
+
+
+@patch("vyos.ssh_client.paramiko.SSHClient")
 def test_connection_pool_reuses_connection(mock_ssh_class, creds):
     clear_pool()
     mock_instance = MagicMock()
