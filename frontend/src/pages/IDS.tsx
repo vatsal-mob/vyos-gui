@@ -134,7 +134,7 @@ function TimelineChart({ timeline, isDark }: { timeline: Summary["timeline"]; is
     yaxis: {
       labels: {
         style: { colors: "hsl(215 16% 58%)", fontSize: "10px", fontFamily: "JetBrains Mono" },
-        formatter: (v) => String(Math.round(v)),
+        formatter: (v: number) => String(Math.round(v)),
       },
     },
     grid: {
